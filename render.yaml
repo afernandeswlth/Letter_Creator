@@ -1,0 +1,22 @@
+# Render Blueprint — deploy the app as a Docker web service.
+# In Render: New → Blueprint → point at this repo. Then set the secret env vars.
+services:
+  - type: web
+    name: welcome-letter-generator
+    runtime: docker
+    plan: starter
+    healthCheckPath: /login
+    envVars:
+      # Auto-generated 32+ char secret for sealing the login session cookie.
+      - key: NUXT_SESSION_PASSWORD
+        generateValue: true
+      # Restrict sign-in to this email domain.
+      - key: NUXT_ALLOWED_EMAIL_DOMAIN
+        value: wlth.com
+      # Set these in the Render dashboard (secrets — not committed):
+      - key: NUXT_OAUTH_GOOGLE_CLIENT_ID
+        sync: false
+      - key: NUXT_OAUTH_GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: ZAPIER_EMAIL_WEBHOOK_URL
+        sync: false

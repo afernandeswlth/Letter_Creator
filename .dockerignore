@@ -1,0 +1,12 @@
+node_modules
+.output
+.nuxt
+.git
+.env
+.env.*
+!.env.example
+public/_sample
+public/_view
+Dockerfile
+.dockerignore
+npm-debug.log*
