@@ -86,7 +86,7 @@ export function useLetterApi() {
     to: string,
     name: string,
     filename: string,
-    template: 'Offset' | 'Standard',
+    opts: { offset: 'yes' | 'no'; isTrust: boolean; trustName: string; accountNumber: string },
   ): Promise<DeliveryResult> {
     const res = await $fetch<{ link: string; to: string; via: string }>('/api/letters/email', {
       method: 'POST',
@@ -98,15 +98,19 @@ export function useLetterApi() {
         to,
         name,
         filename,
-        template,
+        offset: opts.offset,
+        isTrust: String(opts.isTrust),
+        trustName: opts.trustName,
+        accountNumber: opts.accountNumber,
       }),
     })
+    const withForm = opts.offset === 'no' ? ' (with nomination form)' : ''
     return {
       ok: true,
       message:
         res.via === 'zapier'
-          ? `Sent to Zapier for ${res.to} (${template} template) — check hello@wlth.com Drafts.`
-          : `Draft created for ${res.to} (${template} template).`,
+          ? `Sent to Zapier for ${res.to}${withForm} — check hello@wlth.com Drafts.`
+          : `Draft created for ${res.to}${withForm}.`,
       link: res.link,
     }
   }

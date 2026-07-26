@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { runEnginePdf } from '~~/server/utils/engine'
 import { createGmailDraft, gmailConfig } from '~~/server/utils/gmail'
 import { createDraftViaZapier, zapierEmailConfig } from '~~/server/utils/zapierEmail'
@@ -6,11 +8,17 @@ import { welcomeEmail } from '~~/server/utils/emailTemplate'
 /**
  * POST /api/letters/email
  * Multipart: files[] = funder .docx, brand, ddBsb, ddAccount, partyIndex,
- *            to (borrower email), name (recipient), filename (PDF name),
- *            template ('Offset' | 'Standard').
- * Generates the party's PDF and creates a Gmail DRAFT (letter attached) in the
- * GMAIL_SENDER mailbox — it does not send.
+ *            to, name (borrower), filename (PDF name), offset ('yes'|'no'),
+ *            isTrust ('true'|'false'), trustName, accountNumber.
+ * Generates the party's PDF, builds the templated email, and creates a Gmail
+ * DRAFT (no send). When offset = 'no', the brand's Linked Account Nomination
+ * Form is attached as well.
  */
+const FORM_NAMES: Record<string, string> = {
+  wlth: 'WLTH Linked Account Nomination Form.pdf',
+  mma: 'Mortgage Mart Linked Account Nomination Form.pdf',
+}
+
 export default defineEventHandler(async (event) => {
   const parts = (await readMultipartFormData(event)) ?? []
   const files = parts
@@ -24,7 +32,7 @@ export default defineEventHandler(async (event) => {
   if (!to) throw createError({ statusCode: 400, statusMessage: 'Missing borrower email address' })
 
   const brand = field('brand') ?? 'wlth'
-  const template = (field('template') === 'Offset' ? 'Offset' : 'Standard') as 'Offset' | 'Standard'
+  const offset = field('offset') === 'no' ? 'no' : 'yes'
   const filename = (field('filename') || 'Welcome Letter').trim()
 
   let pdf: Buffer
@@ -39,22 +47,36 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, statusMessage: `Engine error: ${(err as Error).message}` })
   }
 
-  const { subject, html } = welcomeEmail(brand, field('name') || to, template)
-  const gmailLink = 'https://mail.google.com/mail/u/0/#drafts'
+  const { subject, html } = welcomeEmail({
+    brandId: brand,
+    borrowerName: field('name') || to,
+    offset,
+    isTrust: field('isTrust') === 'true',
+    trustName: field('trustName') || '',
+    accountNumber: field('accountNumber') || '',
+  })
 
+  const attachments = [{ filename: `${filename}.pdf`, content: pdf }]
+
+  // No offset link → also attach the brand's Linked Account Nomination Form.
+  if (offset === 'no') {
+    try {
+      const formPath = join(process.cwd(), 'engine', 'assets', brand, 'nomination-form.pdf')
+      const formPdf = await readFile(formPath)
+      attachments.push({ filename: FORM_NAMES[brand] ?? 'Linked Account Nomination Form.pdf', content: formPdf })
+    } catch (err) {
+      throw createError({ statusCode: 500, statusMessage: `Could not read nomination form: ${(err as Error).message}` })
+    }
+  }
+
+  const gmailLink = 'https://mail.google.com/mail/u/0/#drafts'
   try {
-    // Prefer Zapier (simplest to set up); fall back to the Gmail service account.
     if (zapierEmailConfig().configured) {
-      await createDraftViaZapier({ to, subject, html, filename: `${filename}.pdf`, pdf, template })
+      await createDraftViaZapier({ to, subject, html, attachments })
       return { ok: true, via: 'zapier', link: gmailLink, to }
     }
     if (gmailConfig().configured) {
-      const draft = await createGmailDraft({
-        to,
-        subject,
-        html,
-        attachment: { filename: `${filename}.pdf`, content: pdf },
-      })
+      const draft = await createGmailDraft({ to, subject, html, attachments })
       return { ok: true, via: 'gmail', ...draft, to }
     }
     throw new Error(

@@ -19,12 +19,10 @@ export interface ZapierDraftInput {
   to: string
   subject: string
   html: string
-  filename: string
-  pdf: Buffer
-  template: string
+  attachments: Array<{ filename: string; content: Buffer }>
 }
 
-/** POST the draft details + PDF to the Zapier webhook. */
+/** POST the draft details + attachment(s) to the Zapier webhook. */
 export async function createDraftViaZapier(input: ZapierDraftInput): Promise<void> {
   const url = process.env.ZAPIER_EMAIL_WEBHOOK_URL
   if (!url) throw new Error('Zapier email webhook is not configured (set ZAPIER_EMAIL_WEBHOOK_URL).')
@@ -33,10 +31,14 @@ export async function createDraftViaZapier(input: ZapierDraftInput): Promise<voi
   form.append('to', input.to)
   form.append('subject', input.subject)
   form.append('body', input.html)
-  form.append('filename', input.filename)
-  form.append('template', input.template)
-  // Uint8Array copy so the Blob owns a plain ArrayBuffer (not Node's pooled one).
-  form.append('attachment', new Blob([new Uint8Array(input.pdf)], { type: 'application/pdf' }), input.filename)
+  form.append('filename', input.attachments[0]?.filename ?? 'Welcome Letter.pdf')
+  // The welcome letter is `attachment`; the nomination form (when present) is
+  // `attachment2`. Map both in the Zap's Gmail "Attachments" field.
+  input.attachments.forEach((att, i) => {
+    // Uint8Array copy so the Blob owns a plain ArrayBuffer (not Node's pooled one).
+    const blob = new Blob([new Uint8Array(att.content)], { type: 'application/pdf' })
+    form.append(i === 0 ? 'attachment' : `attachment${i + 1}`, blob, att.filename)
+  })
 
   const res = await fetch(url, { method: 'POST', body: form })
   if (!res.ok) {

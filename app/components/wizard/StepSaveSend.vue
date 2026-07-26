@@ -19,14 +19,20 @@ function fileBaseFor(name: string) {
   return `${brandLabel.value} Welcome Letter - ${stripTitle(name)}`
 }
 
-const emailTemplate = computed<'Offset' | 'Standard'>(() =>
-  state.value.offsetLinked === 'yes' ? 'Offset' : 'Standard',
-)
-
 // Members get an email; the entity does not.
 const members = computed(() =>
   state.value.rendered.map((p, i) => ({ p, i })).filter((x) => !x.p.isEntity),
 )
+
+// Loan / trust details used in the email subject.
+const isTrust = computed(() => (state.value.parse?.loanType ?? 'Standard') !== 'Standard')
+const primaryParty = computed(() => {
+  const parties = state.value.parse?.parties ?? []
+  return parties.find((p) => p.isEntity) ?? parties[0]
+})
+const trustName = computed(() => primaryParty.value?.name ?? '')
+const accountNumber = computed(() => primaryParty.value?.loanFacilityNumber ?? '')
+const offset = computed<'yes' | 'no'>(() => (state.value.offsetLinked === 'no' ? 'no' : 'yes'))
 
 // The loan name used for the ZIP + Drive-style grouping.
 const loanName = computed(() => {
@@ -58,7 +64,12 @@ async function onCreateDrafts() {
           emails[p.name].trim(),
           p.name,
           fileBaseFor(p.name),
-          emailTemplate.value,
+          {
+            offset: offset.value,
+            isTrust: isTrust.value,
+            trustName: trustName.value,
+            accountNumber: accountNumber.value,
+          },
         )
       } catch (e) {
         const err = e as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
@@ -93,10 +104,10 @@ async function onDownloadAll() {
   <div class="rounded-xl border border-slate-200 bg-white p-6">
     <h2 class="text-lg font-semibold text-slate-900">4. Save &amp; Send</h2>
     <p class="mt-1 text-sm text-slate-500">
-      Enter each borrower's email, then create the draft emails (letter attached)
-      in your <span class="font-medium text-slate-700">hello inbox</span> using the
-      <span class="font-medium text-slate-700">{{ emailTemplate }}</span> template
-      (offset: {{ state.offsetLinked }}). You can also download all the letters as a ZIP.
+      Enter each member's email, then create the draft emails (letter attached)
+      in your <span class="font-medium text-slate-700">hello inbox</span>.
+      <template v-if="offset === 'no'">Since the offset account isn't linked, the Linked Account Nomination Form is attached too.</template>
+      You can also download all the letters as a ZIP.
     </p>
 
     <div class="mt-6 space-y-3">

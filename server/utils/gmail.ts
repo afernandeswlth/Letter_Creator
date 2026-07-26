@@ -57,7 +57,7 @@ export interface DraftInput {
   to: string
   subject: string
   html: string
-  attachment: { filename: string; content: Buffer }
+  attachments: Array<{ filename: string; content: Buffer }>
 }
 
 export interface DraftResult {
@@ -82,7 +82,7 @@ export async function createGmailDraft(input: DraftInput): Promise<DraftResult> 
   const gmail = google.gmail({ version: 'v1', auth })
 
   const boundary = 'wlg_' + b64url(String(input.to)).slice(0, 16)
-  const mime = [
+  const parts = [
     `To: ${input.to}`,
     `From: ${sender}`,
     `Subject: ${encodeSubject(input.subject)}`,
@@ -94,15 +94,19 @@ export async function createGmailDraft(input: DraftInput): Promise<DraftResult> 
     'Content-Transfer-Encoding: base64',
     '',
     wrap76(Buffer.from(input.html, 'utf-8').toString('base64')),
-    `--${boundary}`,
-    `Content-Type: application/pdf; name="${input.attachment.filename}"`,
-    'Content-Transfer-Encoding: base64',
-    `Content-Disposition: attachment; filename="${input.attachment.filename}"`,
-    '',
-    wrap76(input.attachment.content.toString('base64')),
-    `--${boundary}--`,
-    '',
-  ].join('\r\n')
+  ]
+  for (const att of input.attachments) {
+    parts.push(
+      `--${boundary}`,
+      `Content-Type: application/pdf; name="${att.filename}"`,
+      'Content-Transfer-Encoding: base64',
+      `Content-Disposition: attachment; filename="${att.filename}"`,
+      '',
+      wrap76(att.content.toString('base64')),
+    )
+  }
+  parts.push(`--${boundary}--`, '')
+  const mime = parts.join('\r\n')
 
   const res = await gmail.users.drafts.create({
     userId: 'me',
