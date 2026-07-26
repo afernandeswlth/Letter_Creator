@@ -39,10 +39,5 @@ const { state, goTo, reset } = useLetterWizard()
       <WizardStepPreview v-else-if="state.step === 3" />
       <WizardStepSaveSend v-else-if="state.step === 4" />
     </div>
-
-    <!-- Recent letters -->
-    <div class="mt-8">
-      <RecentLettersTable />
-    </div>
   </div>
 </template>
