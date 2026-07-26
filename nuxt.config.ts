@@ -4,12 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
-  modules: ['nuxt-auth-utils'],
   css: ['~/assets/css/main.css'],
-  runtimeConfig: {
-    // Comma-separated email domains allowed to sign in.
-    allowedEmailDomain: 'wlth.com',
-  },
   vite: {
     plugins: [tailwindcss()],
   },
