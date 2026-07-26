@@ -6,6 +6,11 @@ const busy = ref(false)
 const showErrors = ref(false)
 const error = ref('')
 
+const offsetOptions = [
+  { value: 'yes' as const, label: 'Yes / No Offset Account' },
+  { value: 'no' as const, label: 'No' },
+]
+
 const bsbOk = computed(() => /^\d{3}-?\d{3}$/.test(state.value.ddBsb.trim()))
 const accountOk = computed(() => state.value.ddAccount.trim().length >= 5)
 const offsetOk = computed(() => state.value.offsetLinked !== null)
@@ -93,18 +98,18 @@ async function onNext() {
       <p class="mt-0.5 text-xs text-slate-400">Determines which email template the borrower receives.</p>
       <div class="mt-2 flex gap-3">
         <button
-          v-for="opt in (['yes', 'no'] as const)"
-          :key="opt"
+          v-for="opt in offsetOptions"
+          :key="opt.value"
           type="button"
-          class="rounded-lg border px-6 py-2 text-sm font-medium capitalize transition"
+          class="rounded-lg border px-6 py-2 text-sm font-medium transition"
           :class="
-            state.offsetLinked === opt
+            state.offsetLinked === opt.value
               ? 'border-blue-600 bg-blue-50 text-blue-700 ring-1 ring-blue-600'
               : 'border-slate-300 text-slate-700 hover:border-slate-400'
           "
-          @click="state.offsetLinked = opt"
+          @click="state.offsetLinked = opt.value"
         >
-          {{ opt }}
+          {{ opt.label }}
         </button>
       </div>
       <p v-if="showErrors && !offsetOk" class="mt-1 text-xs text-red-600">Please select Yes or No.</p>
