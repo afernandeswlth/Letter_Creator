@@ -1,3 +1,5 @@
+import { SIGNATURE_HTML } from './signature'
+
 interface BrandEmail {
   name: string
   phone: string
@@ -23,6 +25,7 @@ export function welcomeEmail(
          interest charged on your loan — your offset account details are in the attached letter.</p>`
       : ''
 
+  const signature = SIGNATURE_HTML ? `<br/><br/>${SIGNATURE_HTML}` : ''
   const html = `
     <div style="font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #1e2430; line-height: 1.5;">
       <p>Dear ${first},</p>
@@ -32,6 +35,7 @@ export function welcomeEmail(
       ${offsetLine}
       <p>If you have any questions, simply reply to this email or call us on ${brand.phone}.</p>
       <p>Kind regards,<br/>The ${brand.name} Team</p>
+      ${signature}
     </div>`.trim()
 
   return {
