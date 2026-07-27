@@ -70,7 +70,12 @@ async function onNext() {
           "
           @click="setBrand(brand.id as BrandId)"
         >
-          <img :src="brand.logo" :alt="brand.name" class="max-h-9 w-auto max-w-[70%] object-contain" />
+          <img
+            :src="brand.logo"
+            :alt="brand.name"
+            class="w-auto object-contain"
+            :class="brand.id === 'wlth' ? 'max-h-6' : 'max-h-9'"
+          />
         </button>
       </div>
     </div>

@@ -9,7 +9,7 @@ const { state, goTo, reset } = useLetterWizard()
       <h1 class="text-2xl font-bold text-slate-900">New Welcome Letter</h1>
       <button
         type="button"
-        class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+        class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700"
         @click="reset"
       >
         <svg

@@ -11,10 +11,25 @@ const offsetOptions = [
   { value: 'no' as const, label: 'No' },
 ]
 
-const bsbOk = computed(() => /^\d{3}-?\d{3}$/.test(state.value.ddBsb.trim()))
-const accountOk = computed(() => state.value.ddAccount.trim().length >= 5)
+const bsbOk = computed(
+  () => state.value.noDirectDebit || /^\d{3}-?\d{3}$/.test(state.value.ddBsb.trim()),
+)
+const accountOk = computed(
+  () => state.value.noDirectDebit || state.value.ddAccount.trim().length >= 5,
+)
 const offsetOk = computed(() => state.value.offsetLinked !== null)
 const isValid = computed(() => bsbOk.value && accountOk.value && offsetOk.value)
+
+// "No Direct Debit" clears the fields so the letter omits the DD table.
+watch(
+  () => state.value.noDirectDebit,
+  (v) => {
+    if (v) {
+      state.value.ddBsb = ''
+      state.value.ddAccount = ''
+    }
+  },
+)
 
 async function onNext() {
   showErrors.value = true
@@ -69,21 +84,31 @@ async function onNext() {
 
     <!-- Direct Debit Details -->
     <h3 class="mt-6 text-base font-semibold text-slate-900">Direct Debit Details</h3>
+    <label class="mt-2 inline-flex items-center gap-2 text-sm text-slate-700">
+      <input
+        v-model="state.noDirectDebit"
+        type="checkbox"
+        class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+      />
+      No Direct Debit Set Up
+    </label>
     <div class="mt-3 grid grid-cols-1 gap-5 sm:max-w-md sm:grid-cols-2">
       <div>
-        <label for="bsb" class="block text-sm font-medium text-slate-700">BSB Number <span class="text-red-500">*</span></label>
+        <label for="bsb" class="block text-sm font-medium text-slate-700">BSB Number <span v-if="!state.noDirectDebit" class="text-red-500">*</span></label>
         <input
           id="bsb" v-model="state.ddBsb" type="text" placeholder="182-512"
-          class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          :disabled="state.noDirectDebit"
+          class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
           :class="showErrors && !bsbOk ? 'border-red-400' : 'border-slate-300'"
         />
         <p v-if="showErrors && !bsbOk" class="mt-1 text-xs text-red-600">Enter a valid BSB (e.g. 182-512).</p>
       </div>
       <div>
-        <label for="acct" class="block text-sm font-medium text-slate-700">Account Number <span class="text-red-500">*</span></label>
+        <label for="acct" class="block text-sm font-medium text-slate-700">Account Number <span v-if="!state.noDirectDebit" class="text-red-500">*</span></label>
         <input
           id="acct" v-model="state.ddAccount" type="text" placeholder="974761371"
-          class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          :disabled="state.noDirectDebit"
+          class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
           :class="showErrors && !accountOk ? 'border-red-400' : 'border-slate-300'"
         />
         <p v-if="showErrors && !accountOk" class="mt-1 text-xs text-red-600">Enter the account number.</p>

@@ -137,8 +137,9 @@ def render_text(d, brand, dd_bsb, dd_account, smsf_number=None):
     A("Please contact us on 1300 767 023 between 8am - 7pm Monday to Friday (AEST) or 8am - 5pm Saturday (AEST) if you have not received your User ID or temporary password. Once you have changed your initial password, you can access your account online 24 hours a day, 7 days a week.")
     A("Customer Support")
     A(f"If you have any questions please feel free to call us on {B['phone']} between Monday to Friday 9am to 5pm or email us at {B['email']}.")
-    A("Your Nominated Direct Debit Account Details:")
-    A(f"BSB Number: {dd_bsb}"); A(f"Account Number: {dd_account}")
+    if dd_bsb:
+        A("Your Nominated Direct Debit Account Details:")
+        A(f"BSB Number: {dd_bsb}"); A(f"Account Number: {dd_account}")
     A("Your Loan Facility Details:")
     A(f"Loan Purpose: {d['loan_purpose']}")
     A(f"Loan Facility Number: {d['loan_facility_number']}")

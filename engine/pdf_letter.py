@@ -191,10 +191,11 @@ def build_pdf(d, brand_id, dd_bsb, dd_account, smsf_number=None):
                   f"between Monday to Friday 9am to 5pm or email us at {email}."))
     flow.append(Spacer(1, 8))
 
-    # Direct debit
-    flow.append(P("Your Nominated Direct Debit Account Details:", 'head'))
-    flow.append(_kv_table([('BSB Number:', esc(dd_bsb)), ('Account Number:', esc(dd_account))], s, pad=4))
-    flow.append(Spacer(1, 12))
+    # Direct debit (omitted when no direct debit is set up, i.e. no BSB)
+    if dd_bsb:
+        flow.append(P("Your Nominated Direct Debit Account Details:", 'head'))
+        flow.append(_kv_table([('BSB Number:', esc(dd_bsb)), ('Account Number:', esc(dd_account))], s, pad=4))
+        flow.append(Spacer(1, 12))
 
     # Loan facility details
     flow.append(P("Your Loan Facility Details:", 'headb'))

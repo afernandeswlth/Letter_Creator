@@ -8,6 +8,7 @@ export interface WizardState {
   parse: EngineResult | null // detected loan type + parties
   ddBsb: string // the single manual input…
   ddAccount: string // …applied to every party's letter
+  noDirectDebit: boolean // no direct debit set up → omit the DD table
   offsetLinked: 'yes' | 'no' | null // mandatory — changes the email template
   rendered: Party[] // parties with merged letter text
   deliveries: Record<string, { drive: boolean; email: boolean }>
@@ -21,6 +22,7 @@ function initialState(): WizardState {
     parse: null,
     ddBsb: '',
     ddAccount: '',
+    noDirectDebit: false,
     offsetLinked: null,
     rendered: [],
     deliveries: {},
