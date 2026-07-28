@@ -11,6 +11,18 @@ def _pt(p):
     return ''.join(out)
 def _cell(tc): return ' '.join(x for x in (_pt(p).strip() for p in tc.findall('.//'+W+'p')) if x)
 
+# A recipient is the loan's entity (SMSF/company/trust) rather than an
+# individual when its NAME carries one of these markers. This is far more
+# reliable than the greeting: funders address the entity with anything from
+# "Dear Trustees" to a generic "Dear Sir / Madam", so the greeting alone
+# misclassifies the entity as a member.
+ENTITY_MARKERS = (' pty ltd', ' atf ', 'superannuation fund', 'super fund',
+                  ' trust', 'trustee', ' scf ', ' ltd ')
+
+def looks_like_entity(name):
+    n = ' ' + (name or '').lower().strip() + ' '
+    return any(m in n for m in ENTITY_MARKERS)
+
 def para_html(p):
     """Paragraph text with the funder's bold runs preserved as <b> (reportlab markup).
     The funder wraps bold text in nested runs (<w:r><w:rPr><w:b/></w:rPr><w:r>…</w:r></w:r>),
@@ -75,7 +87,9 @@ def parse_funder(path):
     d['address']=[x.strip() for x in ps[1:di]]
     d['date']=ps[di].strip()
     d['greeting']=ps[di+1].strip()
-    d['is_entity']=not d['greeting'].lower().startswith('dear')
+    # Entity = the SMSF/company/trust on the loan. Prefer the recipient name
+    # (robust); fall back to a non-"Dear" greeting for any name we don't flag.
+    d['is_entity']=looks_like_entity(d['recipient_name']) or not d['greeting'].lower().startswith('dear')
     for t in ps:
         m=re.search(r'Home Loan with\s+(.+?)\s+on\s+([\d/]+)',t)
         if m: d['lender']=m.group(1).strip(); d['settlement_date']=m.group(2)
