@@ -155,7 +155,10 @@ def build_approval_pdf(brand_id, v):
                   ('TOPPADDING', (0, 0), (-1, 0), 2.5), ('BOTTOMPADDING', (0, 0), (-1, 0), 2.5),
                   # column-based zebra: label columns gray, value columns white
                   ('BACKGROUND', (0, 1), (0, -1), ZEBRA),
-                  ('BACKGROUND', (2, 1), (2, -1), ZEBRA)]
+                  ('BACKGROUND', (2, 1), (2, -1), ZEBRA),
+                  # white row separators inside the gray label columns
+                  ('LINEBELOW', (0, 1), (0, -2), 1, colors.white),
+                  ('LINEBELOW', (2, 1), (2, -2), 1, colors.white)]
         return TableStyle(s)
 
     flow = []
