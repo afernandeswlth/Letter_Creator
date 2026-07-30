@@ -156,7 +156,7 @@ def build_approval_pdf(brand_id, v):
 
     def grid_style(bar_row=False):
         s = [
-            ('GRID', (0, 1 if bar_row else 0), (-1, -1), 0.5, GRIDC),
+            ('GRID', (0, 1 if bar_row else 0), (-1, -1), 0.25, GRIDC),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('LEFTPADDING', (0, 0), (-1, -1), 5), ('RIGHTPADDING', (0, 0), (-1, -1), 5),
             ('TOPPADDING', (0, 0), (-1, -1), 4.6), ('BOTTOMPADDING', (0, 0), (-1, -1), 4.6),
