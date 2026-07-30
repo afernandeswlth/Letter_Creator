@@ -183,7 +183,7 @@ def parse_schedule4(path, brand='wlth'):
     put('interestRate', rate)
     put('revertRate', rate)
     put('monthlyRepayment', _after(lines, 'Initial Repayment Amount', 'Repayment Amount'))
-    put('productName', _after(lines, 'Loan Product'))  # marketing name (Format B only)
+    put('productName', _after(lines, 'Loan Product', 'Product Name'))  # marketing product name
 
     itype = _after(lines, 'Interest Type', 'Interest Rate Type')
     put('rateType', 'Fixed' if 'fixed' in itype.lower() else 'Variable')
@@ -197,7 +197,6 @@ def parse_schedule4(path, brand='wlth'):
 
     sec = _after(lines, 'Security Property', 'Security Address')
     put('securityProperty', re.sub(r',\s*Australia\s*$', '', sec))
-    put('mortgagors', _after(lines, 'Security Ownership', 'Ownership'))
 
     # Borrower(s): Format B has the full "Company ATF Trust" in one field;
     # Format A builds it from the company applicant + its trust name.
@@ -216,6 +215,14 @@ def parse_schedule4(path, brand='wlth'):
         gs = [e['name'] for e in _applicant_entries(lines)
               if e['role'] == 'Guarantor' and e['kind'] == 'Person Applicants' and e['name']]
     put('guarantors', ' & '.join(gs))
+
+    # Mortgagor(s) — only for trust/SMSF loans. A standard loan (no trust, no
+    # guarantors) lists only the borrower(s) in the Applicant Overview; its
+    # 'Ownership' is just the borrowers again, so we don't add a Mortgagor row.
+    ptype = (_after(lines, 'Product Type', 'Borrower Classification') or '').lower()
+    is_trust = (' atf ' in ' ' + borrower.lower() + ' ') or bool(gs) or 'smsf' in ptype or 'trust' in ptype
+    if is_trust:
+        put('mortgagors', _after(lines, 'Security Ownership', 'Ownership'))
 
     put('borrowerEmail', _after(lines, 'Contact Email', 'Email'))
     put('specialConditions', _special_conditions(lines, brand))

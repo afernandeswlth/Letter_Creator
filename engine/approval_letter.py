@@ -182,11 +182,12 @@ def build_approval_pdf(brand_id, v):
 
     flow.append(Paragraph('Applicant Overview', head))
     flow.append(Spacer(1, 11))
-    ov = Table([
-        [L('Borrower(s):'), V(g('borrowers'))],
-        [L('Mortgagor(s):'), V(g('mortgagors'))],
-        [L('Guarantor(s):'), V(g('guarantors'))],
-    ], colWidths=brand['acols'])
+    ov_rows = [[L('Borrower(s):'), V(g('borrowers'))]]
+    if g('mortgagors'):
+        ov_rows.append([L('Mortgagor(s):'), V(g('mortgagors'))])
+    if g('guarantors'):
+        ov_rows.append([L('Guarantor(s):'), V(g('guarantors'))])
+    ov = Table(ov_rows, colWidths=brand['acols'])
     ov.setStyle(grid_style())
     flow += [ov, Spacer(1, 24)]
 
