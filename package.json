@@ -1,9 +1,10 @@
 {
-  "name": "welcome-letter-generator",
+  "name": "letter-generator",
   "type": "module",
   "private": true,
   "scripts": {
     "build": "nuxt build",
+    "vercel-build": "nuxt generate",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",

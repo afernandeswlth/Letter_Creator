@@ -2,6 +2,7 @@
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineNuxtConfig({
+  ssr: false,
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   css: ['~/assets/css/main.css'],
@@ -10,7 +11,7 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
-      title: 'Welcome Letter Generator',
+      title: 'Letter Generator',
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
       ],
