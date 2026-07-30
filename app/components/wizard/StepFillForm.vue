@@ -55,6 +55,7 @@ function onFile(list: FileList | null | undefined) {
     return
   }
   state.value.files = [f]
+  readSchedule4() // auto-read on upload
 }
 function removeFile() {
   state.value.files = []
@@ -132,14 +133,17 @@ function onNext() {
             {{ state.files[0]?.name }}
           </span>
           <div class="flex items-center gap-3">
-            <button
-              type="button"
-              class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-40"
-              :disabled="reading"
-              @click="readSchedule4"
-            >
-              {{ reading ? 'Reading…' : 'Read Schedule 4' }}
-            </button>
+            <span v-if="reading" class="inline-flex items-center gap-1.5 text-sm text-slate-500">
+              <svg class="h-4 w-4 animate-spin text-blue-600" viewBox="0 0 24 24" fill="none">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+              </svg>
+              Reading…
+            </span>
+            <span v-else-if="readMsg" class="inline-flex items-center gap-1 text-sm font-medium text-green-700">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7" /></svg>
+              Read
+            </span>
             <button class="text-sm font-medium text-slate-400 hover:text-red-600" @click="removeFile">Remove</button>
           </div>
         </div>
