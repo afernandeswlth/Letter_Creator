@@ -116,6 +116,19 @@ def _page(canvas, doc, brand):
 
 
 def build_approval_pdf(brand_id, v):
+    """Render the letter on a single page: first try full spacing, then tighten
+    the vertical gaps (not the text) just enough to fit; only shrink the text as
+    a last resort if even tight gaps overflow."""
+    import fitz
+    for gap_scale in (1.0, 0.85, 0.7, 0.55, 0.4, 0.3):
+        pdf = _build_pdf(brand_id, v, gap_scale=gap_scale)
+        if fitz.open(stream=pdf, filetype='pdf').page_count == 1:
+            return pdf
+    # even the tightest gaps overflow -> shrink text to fit
+    return _build_pdf(brand_id, v, gap_scale=0.3, shrink=True)
+
+
+def _build_pdf(brand_id, v, gap_scale=1.0, shrink=False):
     brand = BRANDS.get(brand_id, BRANDS['wlth'])
     esc = PL.esc
 
@@ -174,16 +187,19 @@ def build_approval_pdf(brand_id, v):
                   ('LINEBELOW', (2, 1), (2, -2), 1, colors.white)]
         return TableStyle(s)
 
+    def G(x):  # flexible vertical gap (tightened to fit one page)
+        return Spacer(1, x * gap_scale)
+
     flow = []
     flow.append(Paragraph(esc(g('date')), date_s))
-    flow.append(Spacer(1, 20))
+    flow.append(G(20))
     flow.append(Paragraph(
         f'<font color="{brand["accent"]}">We have the pleasure</font> in forwarding you Formal Approval '
         'for finance.<br/>The details of the loan are as follows:', intro))
-    flow.append(Spacer(1, 16))
+    flow.append(G(16))
 
     flow.append(Paragraph('Applicant Overview', head))
-    flow.append(Spacer(1, 11))
+    flow.append(G(11))
     ov_rows = [[L('Borrower(s):'), V(g('borrowers'))]]
     if g('mortgagors'):
         ov_rows.append([L('Mortgagor(s):'), V(g('mortgagors'))])
@@ -191,7 +207,7 @@ def build_approval_pdf(brand_id, v):
         ov_rows.append([L('Guarantor(s):'), V(g('guarantors'))])
     ov = Table(ov_rows, colWidths=brand['acols'])
     ov.setStyle(grid_style())
-    flow += [ov, Spacer(1, 24)]
+    flow += [ov, G(24)]
 
     rows = [
         [Paragraph('Product Details', bar), '', '', ''],
@@ -205,10 +221,10 @@ def build_approval_pdf(brand_id, v):
     ]
     product = Table(rows, colWidths=brand['pcols'])
     product.setStyle(grid_style(bar_row=True))
-    flow += [product, Spacer(1, 10)]
+    flow += [product, G(10)]
 
     flow.append(Paragraph(NOTE, note))
-    flow.append(Spacer(1, 21))
+    flow.append(G(21))
 
     def cond_para(line):
         m = re.match(r'^(\d+[.)])\s*(.*)$', line.strip())
@@ -226,13 +242,14 @@ def build_approval_pdf(brand_id, v):
     sty = grid_style(grid_color=GRIDC_DARK)
     sty.add('VALIGN', (1, 2), (1, 2), 'TOP')
     sec.setStyle(sty)
-    flow += [sec, Spacer(1, brand.get('disc_gap', 21))]
+    flow += [sec, G(brand.get('disc_gap', 21))]
 
     for para in DISCLAIMER:
         flow.append(Paragraph(esc(para), disc))
 
-    # Guarantee a single page: shrink-to-fit if the content would overflow.
-    doc.build([KeepInFrame(CONTENT_W, frame_h, flow, mode='shrink', hAlign='LEFT', vAlign='TOP')])
+    if shrink:  # last-resort text shrink (only when even tight gaps overflow)
+        flow = [KeepInFrame(CONTENT_W, frame_h, flow, mode='shrink', hAlign='LEFT', vAlign='TOP')]
+    doc.build(flow)
     return buf.getvalue()
 
 
