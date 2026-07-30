@@ -182,7 +182,7 @@ def parse_schedule4(path, brand='wlth'):
     rate = _after(lines, 'Interest Rate')
     put('interestRate', rate)
     put('revertRate', rate)
-    put('monthlyRepayment', _after(lines, 'Initial Repayment Amount', 'Repayment Amount'))
+    put('monthlyRepayment', _after(lines, 'Initial Repayment Amount', 'Repayment Amount', 'Monthly Repayment Amount'))
     put('productName', _after(lines, 'Loan Product', 'Product Name'))  # marketing product name
 
     itype = _after(lines, 'Interest Type', 'Interest Rate Type')
