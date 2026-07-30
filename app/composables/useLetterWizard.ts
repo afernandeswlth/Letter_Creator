@@ -15,6 +15,7 @@ export interface WizardState {
   offsetLinked: 'yes' | 'no' | null // mandatory — changes the email template
   // 'form' letter types (e.g. Approval, Discharge):
   fieldValues: FieldValues // keyed by LetterTypeField.id
+  formMode: 'manual' | 'schedule4' // fill the form by hand, or auto-fill from an upload
   rendered: Party[] // parties with merged letter text
   deliveries: Record<string, { drive: boolean; email: boolean }>
 }
@@ -31,6 +32,7 @@ function initialState(): WizardState {
     noDirectDebit: false,
     offsetLinked: null,
     fieldValues: {},
+    formMode: 'manual',
     rendered: [],
     deliveries: {},
   }

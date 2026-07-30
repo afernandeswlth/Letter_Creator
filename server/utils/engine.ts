@@ -107,6 +107,23 @@ export async function runEnginePdf(
   })
 }
 
+/** Extract field values from an uploaded source doc (e.g. a Schedule 4). */
+export async function runEngineFormParse(
+  letterType: string,
+  brand: string,
+  file: UploadedFile,
+): Promise<{ values: Record<string, string> }> {
+  return withFiles([file], (paths) => {
+    const args = [ENGINE, 'form-parse', letterType, brand, paths[0]]
+    return new Promise<{ values: Record<string, string> }>((resolve, reject) => {
+      execFile('python3', args, { cwd: CWD(), maxBuffer: 16 * 1024 * 1024 }, (err, out, errOut) => {
+        if (err) reject(new Error(errOut || err.message))
+        else resolve(JSON.parse(out) as { values: Record<string, string> })
+      })
+    })
+  })
+}
+
 /** Render a form-driven letter type (e.g. Formal Approval) to PDF bytes. */
 export async function runEngineFormPdf(
   letterType: string,

@@ -216,6 +216,22 @@ def email():
 # --------------------------------------------------------------------------
 # form-driven letter types (Formal Approval, etc.) — JSON body, no upload
 # --------------------------------------------------------------------------
+@app.post('/api/forms/parse-source')
+def form_parse_source():
+    fs = request.files.get('file')
+    if fs is None:
+        return _json({'error': 'No file uploaded'}, 400)
+    letter_type = request.form.get('letterType', '')
+    brand = request.form.get('brand', 'wlth')
+    tmpdir = tempfile.mkdtemp(prefix='lg-s4-')
+    path = os.path.join(tmpdir, re.sub(r'[^\w.-]', '_', fs.filename or 'source'))
+    fs.save(path)
+    try:
+        return _json({'values': cli.parse_form_source(letter_type, brand, path)})
+    except Exception as e:  # noqa: BLE001
+        return _json({'error': str(e)}, 500)
+
+
 @app.post('/api/forms/pdf')
 def form_pdf():
     data = request.get_json(force=True, silent=True) or {}

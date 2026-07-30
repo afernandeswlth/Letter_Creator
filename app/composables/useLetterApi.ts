@@ -177,6 +177,24 @@ export function useLetterApi() {
   // --- form-driven letter types (Formal Approval, etc.) -------------------
   const engineBrand = (brand: BrandId) => (brand === 'mortgage-mart' ? 'mma' : 'wlth')
 
+  /** POST /api/forms/parse-source — extract field values from an uploaded
+   *  source document (e.g. a Schedule 4) to auto-fill a form letter. */
+  async function parseFormSource(
+    letterType: string,
+    brand: BrandId,
+    file: File,
+  ): Promise<Record<string, string>> {
+    const fd = new FormData()
+    fd.append('file', file, file.name)
+    fd.append('letterType', letterType)
+    fd.append('brand', engineBrand(brand))
+    const res = await $fetch<{ values: Record<string, string> }>('/api/forms/parse-source', {
+      method: 'POST',
+      body: fd,
+    })
+    return res.values ?? {}
+  }
+
   /** POST /api/forms/preview — rasterised page images for a form letter. */
   async function formPreview(
     letterType: string,
@@ -243,5 +261,5 @@ export function useLetterApi() {
     ])
   }
 
-  return { parseFunderDocs, renderLetters, previewPages, fetchPdf, downloadPdf, downloadZip, createEmailDraft, formPreview, downloadFormPdf, createFormEmailDraft, getRecentLetters }
+  return { parseFunderDocs, renderLetters, previewPages, fetchPdf, downloadPdf, downloadZip, createEmailDraft, parseFormSource, formPreview, downloadFormPdf, createFormEmailDraft, getRecentLetters }
 }

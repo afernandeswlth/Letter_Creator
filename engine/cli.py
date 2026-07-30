@@ -85,6 +85,19 @@ def build_form_pdf(letter_type, brand, values):
     return fn(brand, values)
 
 
+def parse_form_source(letter_type, brand, path):
+    """Extract field values from an uploaded source doc (e.g. a Schedule 4)."""
+    if letter_type == 'approval':
+        import approval_schedule4
+        return approval_schedule4.parse_schedule4(path)
+    return {}
+
+
+def cmd_form_parse(letter_type, brand, path):
+    print(json.dumps({'values': parse_form_source(letter_type, brand, path)}, ensure_ascii=False))
+    return 0
+
+
 def cmd_form_pdf(letter_type, brand, values_json):
     import sys as _sys
     _sys.stdout.buffer.write(build_form_pdf(letter_type, brand, json.loads(values_json)))
@@ -172,6 +185,9 @@ def main(argv):
     if cmd == 'form-preview':
         letter_type, brand, values_json = rest
         return cmd_form_preview(letter_type, brand, values_json)
+    if cmd == 'form-parse':
+        letter_type, brand, path = rest
+        return cmd_form_parse(letter_type, brand, path)
     if cmd == 'parse':
         out = cmd_parse(rest)
     elif cmd == 'render':
