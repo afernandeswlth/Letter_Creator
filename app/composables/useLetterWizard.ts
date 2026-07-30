@@ -32,7 +32,7 @@ function initialState(): WizardState {
     noDirectDebit: false,
     offsetLinked: null,
     fieldValues: {},
-    formMode: 'manual',
+    formMode: 'schedule4',
     rendered: [],
     deliveries: {},
   }
