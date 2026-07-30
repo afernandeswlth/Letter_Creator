@@ -32,12 +32,12 @@ CONTENT_W = PAGE_W - LM - RM  # 568
 
 FONT, BOLD = 'Helvetica', 'Helvetica-Bold'
 INK = colors.HexColor('#46494f')
-TITLE_BLUE = colors.HexColor('#2557be')
-INTRO_BLUE = colors.HexColor('#2257be')
+TITLE_BLUE = colors.HexColor('#2157be')
+INTRO_BLUE = colors.HexColor('#2157be')
 INTRO_GREY = colors.HexColor('#7a8890')
-BAR_BLUE = colors.HexColor('#2156bd')
+BAR_BLUE = colors.HexColor('#2157be')
 GREY_BAND = colors.HexColor('#f4f4f4')
-NAVY = colors.HexColor('#16214a')
+NAVY = colors.HexColor('#16224b')
 GRIDC = colors.HexColor('#e6e8eb')
 ZEBRA = colors.HexColor('#e9ecee')  # alternating row shade
 
@@ -46,13 +46,13 @@ BRANDS = {
         'header': os.path.join(HERE, 'assets', 'wlth', 'approval-header.png'),
         'footer_logo': os.path.join(HERE, 'assets', 'wlth', 'footer-w.png'),
         'lender': 'WLTH', 'product': 'Ocean', 'team': 'The WLTH Team',
-        'bar': colors.HexColor('#3e35bb'),  # WLTH brand purple
+        'bar': colors.HexColor('#2157be'),  # WLTH blue
     },
     'mma': {
         'header': os.path.join(HERE, 'assets', 'mma', 'approval-header.png'),
         'footer_logo': os.path.join(HERE, 'assets', 'mma', 'footer-w.png'),
         'lender': 'Mortgage Mart of Australia', 'product': 'Ultra', 'team': 'The Mortgage Mart Team',
-        'bar': colors.HexColor('#3e35bb'),
+        'bar': colors.HexColor('#2157be'),
     },
 }
 
@@ -86,13 +86,13 @@ def _page(canvas, doc, brand):
     canvas.setFont(BOLD, 15)
     canvas.drawString(LM, PAGE_H - 31.5, 'Formal Approval')
     _draw_logo(canvas, brand['header'], PAGE_W - 82.2, PAGE_H - 47.2, 82.2, 46.5)
-    # navy footer band + sign-off + brand mark
+    # navy footer band (content width, not full-bleed) + sign-off + brand mark
     canvas.setFillColor(NAVY)
-    canvas.rect(0, 31, PAGE_W, 25, stroke=0, fill=1)
+    canvas.rect(LM, 31, CONTENT_W, 25, stroke=0, fill=1)
     canvas.setFillColor(colors.white)
     canvas.setFont(FONT, 9)
-    canvas.drawString(LM + 6.8, 39.8, f"Yours Sincerely, {brand['team']}")
-    _draw_logo(canvas, brand['footer_logo'], 553.2, 35.9, 20.9, 15.1)
+    canvas.drawString(LM + 8, 39.8, f"Yours Sincerely, {brand['team']}")
+    _draw_logo(canvas, brand['footer_logo'], PAGE_W - RM - 8 - 20.9, 35.9, 20.9, 15.1)
     canvas.restoreState()
 
 
