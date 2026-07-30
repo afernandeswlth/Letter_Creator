@@ -14,6 +14,7 @@ we use Helvetica (metric-compatible with Arial) — everything else matches.
 """
 import io
 import os
+import re
 
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
@@ -52,6 +53,7 @@ BRANDS = {
         'footer_band': colors.HexColor('#16224b'),
         # layout (measured from the WLTH example)
         'tsize': 9, 'pcols': [150, 135, 149, 134], 'acols': [116, 452], 'disc_gap': 21,
+        'cond_ind': (7, 21),  # (number indent, text/hanging indent) within the cell
     },
     'mma': {
         'header': os.path.join(HERE, 'assets', 'mma', 'approval-header.png'),
@@ -63,6 +65,7 @@ BRANDS = {
         'footer_band': colors.HexColor('#1f232d'),
         # layout (measured from the MMA example)
         'tsize': 7.9, 'pcols': [90, 149, 145, 184], 'acols': [119, 449], 'disc_gap': 39,
+        'cond_ind': (15, 33),
     },
 }
 
@@ -131,7 +134,10 @@ def build_approval_pdf(brand_id, v):
     bar = ParagraphStyle('bar', parent=body, fontSize=tsize, textColor=colors.white)
     note = ParagraphStyle('n', parent=body, leading=11)
     disc = ParagraphStyle('dc', parent=body, leading=11, spaceAfter=11)
-    cond = ParagraphStyle('c', parent=body, leftIndent=15, firstLineIndent=-15, spaceAfter=9)
+    ci = brand.get('cond_ind', (7, 21))
+    cond = ParagraphStyle('c', parent=body, fontSize=tsize, leading=tsize + 3,
+                          leftIndent=ci[1], bulletIndent=ci[0], spaceAfter=8,
+                          bulletFontName=FONT, bulletFontSize=tsize)
 
     def L(t):
         return Paragraph(esc(t) or '&nbsp;', lbl)
@@ -201,8 +207,14 @@ def build_approval_pdf(brand_id, v):
     flow.append(Paragraph(NOTE, note))
     flow.append(Spacer(1, 21))
 
+    def cond_para(line):
+        m = re.match(r'^(\d+[.)])\s*(.*)$', line.strip())
+        if m:
+            return Paragraph(esc(m.group(2)), cond, bulletText=m.group(1))
+        return Paragraph(esc(line.strip()), cond)
+
     conds = g('specialConditions')
-    cond_cell = [Paragraph(esc(l.strip()), cond) for l in conds.split('\n') if l.strip()] if conds else V('')
+    cond_cell = [cond_para(l) for l in conds.split('\n') if l.strip()] if conds else V('')
     sec = Table([
         [L('Security Property:'), V(g('securityProperty'))],
         [L('Our Panel Solicitor:'), V(g('panelSolicitor', 'Green Mortgage Lawyers'))],
