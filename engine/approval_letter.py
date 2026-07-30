@@ -50,6 +50,8 @@ BRANDS = {
         'band': colors.HexColor('#f4f4f4'), 'title': colors.HexColor('#2157be'),
         'bar': colors.HexColor('#2157be'), 'accent': '#2157be',
         'footer_band': colors.HexColor('#16224b'),
+        # layout (measured from the WLTH example)
+        'tsize': 9, 'pcols': [150, 135, 149, 134], 'acols': [116, 452], 'disc_gap': 21,
     },
     'mma': {
         'header': os.path.join(HERE, 'assets', 'mma', 'approval-header.png'),
@@ -59,6 +61,8 @@ BRANDS = {
         'band': colors.HexColor('#1f232d'), 'title': colors.white,
         'bar': colors.black, 'accent': '#1f232d',
         'footer_band': colors.HexColor('#1f232d'),
+        # layout (measured from the MMA example)
+        'tsize': 7.9, 'pcols': [90, 149, 145, 184], 'acols': [119, 449], 'disc_gap': 39,
     },
 }
 
@@ -121,9 +125,10 @@ def build_approval_pdf(brand_id, v):
     date_s = ParagraphStyle('d', parent=body, fontSize=10, leading=13)
     intro = ParagraphStyle('i', parent=body, fontSize=14, leading=19.8, textColor=INTRO_GREY)
     head = ParagraphStyle('h', parent=body, fontSize=10, leading=13)
-    lbl = ParagraphStyle('l', parent=body)
-    val = ParagraphStyle('v', parent=body)
-    bar = ParagraphStyle('bar', parent=body, textColor=colors.white)
+    tsize = brand.get('tsize', 9)
+    lbl = ParagraphStyle('l', parent=body, fontSize=tsize)
+    val = ParagraphStyle('v', parent=body, fontSize=tsize)
+    bar = ParagraphStyle('bar', parent=body, fontSize=tsize, textColor=colors.white)
     note = ParagraphStyle('n', parent=body, leading=11)
     disc = ParagraphStyle('dc', parent=body, leading=11, spaceAfter=11)
     cond = ParagraphStyle('c', parent=body, leftIndent=15, firstLineIndent=-15, spaceAfter=9)
@@ -137,7 +142,7 @@ def build_approval_pdf(brand_id, v):
     tp = dict(topPadding=4.6, bottomPadding=4.6, leftPadding=5, rightPadding=5)
 
     buf = io.BytesIO()
-    frame = Frame(LM, 60, CONTENT_W, PAGE_H - 51 - 60,
+    frame = Frame(LM, 60, CONTENT_W, PAGE_H - 61 - 60,
                   leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
     doc = BaseDocTemplate(buf, pagesize=(PAGE_W, PAGE_H))
     doc.addPageTemplates([PageTemplate(id='fa', frames=[frame],
@@ -163,21 +168,21 @@ def build_approval_pdf(brand_id, v):
 
     flow = []
     flow.append(Paragraph(esc(g('date')), date_s))
-    flow.append(Spacer(1, 15))
+    flow.append(Spacer(1, 20))
     flow.append(Paragraph(
         f'<font color="{brand["accent"]}">We have the pleasure</font> in forwarding you Formal Approval '
         'for finance.<br/>The details of the loan are as follows:', intro))
-    flow.append(Spacer(1, 14))
+    flow.append(Spacer(1, 16))
 
     flow.append(Paragraph('Applicant Overview', head))
-    flow.append(Spacer(1, 4))
+    flow.append(Spacer(1, 11))
     ov = Table([
         [L('Borrower(s):'), V(g('borrowers'))],
         [L('Mortgagor(s):'), V(g('mortgagors'))],
         [L('Guarantor(s):'), V(g('guarantors'))],
-    ], colWidths=[116, CONTENT_W - 116])
+    ], colWidths=brand['acols'])
     ov.setStyle(grid_style())
-    flow += [ov, Spacer(1, 18)]
+    flow += [ov, Spacer(1, 24)]
 
     rows = [
         [Paragraph('Product Details', bar), '', '', ''],
@@ -189,12 +194,12 @@ def build_approval_pdf(brand_id, v):
         [L('Annual Facility Fee'), V(g('annualFacilityFee', '$395.00')), L('Monthly Fees'), V(g('monthlyFees', '$0.00'))],
         [L('Offset Account'), V(g('offsetAccount', 'Yes')), L('Redraw Facility'), V(g('redrawFacility', 'N/A'))],
     ]
-    product = Table(rows, colWidths=[150, 135, 149, 134])
+    product = Table(rows, colWidths=brand['pcols'])
     product.setStyle(grid_style(bar_row=True))
     flow += [product, Spacer(1, 10)]
 
     flow.append(Paragraph(NOTE, note))
-    flow.append(Spacer(1, 16))
+    flow.append(Spacer(1, 21))
 
     conds = g('specialConditions')
     cond_cell = [Paragraph(esc(l.strip()), cond) for l in conds.split('\n') if l.strip()] if conds else V('')
@@ -202,11 +207,11 @@ def build_approval_pdf(brand_id, v):
         [L('Security Property:'), V(g('securityProperty'))],
         [L('Our Panel Solicitor:'), V(g('panelSolicitor', 'Green Mortgage Lawyers'))],
         [L('Special Conditions:'), cond_cell],
-    ], colWidths=[116, CONTENT_W - 116])
+    ], colWidths=brand['acols'])
     sty = grid_style()
     sty.add('VALIGN', (1, 2), (1, 2), 'TOP')
     sec.setStyle(sty)
-    flow += [sec, Spacer(1, 16)]
+    flow += [sec, Spacer(1, brand.get('disc_gap', 21))]
 
     for para in DISCLAIMER:
         flow.append(Paragraph(esc(para), disc))
