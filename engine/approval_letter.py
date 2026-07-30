@@ -142,8 +142,9 @@ def build_approval_pdf(brand_id, v):
         if bar_row:
             s += [('SPAN', (0, 0), (-1, 0)), ('BACKGROUND', (0, 0), (-1, 0), brand['bar']),
                   ('TOPPADDING', (0, 0), (-1, 0), 2.5), ('BOTTOMPADDING', (0, 0), (-1, 0), 2.5),
-                  # zebra-stripe the data rows (gray / white), starting gray under the bar
-                  ('ROWBACKGROUNDS', (0, 1), (-1, -1), [ZEBRA, colors.white])]
+                  # column-based zebra: label columns gray, value columns white
+                  ('BACKGROUND', (0, 1), (0, -1), ZEBRA),
+                  ('BACKGROUND', (2, 1), (2, -1), ZEBRA)]
         return TableStyle(s)
 
     flow = []
