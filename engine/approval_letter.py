@@ -40,6 +40,7 @@ BAR_BLUE = colors.HexColor('#2157be')
 GREY_BAND = colors.HexColor('#f4f4f4')
 NAVY = colors.HexColor('#16224b')
 GRIDC = colors.HexColor('#e6e8eb')
+GRIDC_DARK = colors.HexColor('#c3c7cd')  # more visible grid (security table)
 ZEBRA = colors.HexColor('#e9ecee')  # alternating row shade
 
 BRANDS = {
@@ -154,9 +155,9 @@ def build_approval_pdf(brand_id, v):
     doc.addPageTemplates([PageTemplate(id='fa', frames=[frame],
                                        onPage=lambda c, d: _page(c, d, brand))])
 
-    def grid_style(bar_row=False):
+    def grid_style(bar_row=False, grid_color=GRIDC):
         s = [
-            ('GRID', (0, 1 if bar_row else 0), (-1, -1), 0.25, GRIDC),
+            ('GRID', (0, 1 if bar_row else 0), (-1, -1), 0.25, grid_color),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('LEFTPADDING', (0, 0), (-1, -1), 5), ('RIGHTPADDING', (0, 0), (-1, -1), 5),
             ('TOPPADDING', (0, 0), (-1, -1), 4.6), ('BOTTOMPADDING', (0, 0), (-1, -1), 4.6),
@@ -221,7 +222,7 @@ def build_approval_pdf(brand_id, v):
         [L('Our Panel Solicitor:'), V(g('panelSolicitor', 'Green Mortgage Lawyers'))],
         [L('Special Conditions:'), cond_cell],
     ], colWidths=brand['acols'])
-    sty = grid_style()
+    sty = grid_style(grid_color=GRIDC_DARK)
     sty.add('VALIGN', (1, 2), (1, 2), 'TOP')
     sec.setStyle(sty)
     flow += [sec, Spacer(1, brand.get('disc_gap', 21))]
