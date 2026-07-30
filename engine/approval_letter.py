@@ -21,7 +21,7 @@ from reportlab.lib import colors
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.utils import ImageReader
 from reportlab.platypus import (
-    BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle,
+    BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle, KeepInFrame,
 )
 
 import pdf_letter as PL
@@ -149,7 +149,8 @@ def build_approval_pdf(brand_id, v):
     tp = dict(topPadding=4.6, bottomPadding=4.6, leftPadding=5, rightPadding=5)
 
     buf = io.BytesIO()
-    frame = Frame(LM, 60, CONTENT_W, PAGE_H - 61 - 60,
+    frame_h = PAGE_H - 61 - 60
+    frame = Frame(LM, 60, CONTENT_W, frame_h,
                   leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
     doc = BaseDocTemplate(buf, pagesize=(PAGE_W, PAGE_H))
     doc.addPageTemplates([PageTemplate(id='fa', frames=[frame],
@@ -230,7 +231,8 @@ def build_approval_pdf(brand_id, v):
     for para in DISCLAIMER:
         flow.append(Paragraph(esc(para), disc))
 
-    doc.build(flow)
+    # Guarantee a single page: shrink-to-fit if the content would overflow.
+    doc.build([KeepInFrame(CONTENT_W, frame_h, flow, mode='shrink', hAlign='LEFT', vAlign='TOP')])
     return buf.getvalue()
 
 
