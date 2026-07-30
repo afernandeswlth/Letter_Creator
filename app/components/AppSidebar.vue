@@ -3,14 +3,15 @@ interface NavItem {
   label: string
   to: string
   icon: string
+  disabled?: boolean
 }
 
 // Simple inline icon paths (Heroicons-style, 24x24 outline).
 const nav: NavItem[] = [
   { label: 'Dashboard', to: '/', icon: 'M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10' },
-  { label: 'All Letters', to: '/letters', icon: 'M4 4h12l4 4v12a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1zM9 9h6M9 13h6M9 17h4' },
-  { label: 'Templates', to: '/templates', icon: 'M4 4h12l4 4v12a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1zM9 9h6M9 13h6M9 17h4' },
-  { label: 'Settings', to: '/settings', icon: 'M10.3 3.2a1 1 0 011.4 0l.9.9a1 1 0 00.9.3l1.2-.2a1 1 0 011.1.8l.3 1.2a1 1 0 00.6.7l1.1.5a1 1 0 01.6 1.3l-.5 1.1a1 1 0 000 .9l.5 1.1a1 1 0 01-.6 1.3l-1.1.5a1 1 0 00-.6.7l-.3 1.2a1 1 0 01-1.1.8l-1.2-.2a1 1 0 00-.9.3l-.9.9a1 1 0 01-1.4 0l-.9-.9a1 1 0 00-.9-.3l-1.2.2a1 1 0 01-1.1-.8l-.3-1.2a1 1 0 00-.6-.7l-1.1-.5a1 1 0 01-.6-1.3l.5-1.1a1 1 0 000-.9l-.5-1.1a1 1 0 01.6-1.3l1.1-.5a1 1 0 00.6-.7l.3-1.2a1 1 0 011.1-.8l1.2.2a1 1 0 00.9-.3zM12 15a3 3 0 100-6 3 3 0 000 6z' },
+  { label: 'All Letters', to: '/letters', disabled: true, icon: 'M4 4h12l4 4v12a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1zM9 9h6M9 13h6M9 17h4' },
+  { label: 'Templates', to: '/templates', disabled: true, icon: 'M4 4h12l4 4v12a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1zM9 9h6M9 13h6M9 17h4' },
+  { label: 'Settings', to: '/settings', disabled: true, icon: 'M10.3 3.2a1 1 0 011.4 0l.9.9a1 1 0 00.9.3l1.2-.2a1 1 0 011.1.8l.3 1.2a1 1 0 00.6.7l1.1.5a1 1 0 01.6 1.3l-.5 1.1a1 1 0 000 .9l.5 1.1a1 1 0 01-.6 1.3l-1.1.5a1 1 0 00-.6.7l-.3 1.2a1 1 0 01-1.1.8l-1.2-.2a1 1 0 00-.9.3l-.9.9a1 1 0 01-1.4 0l-.9-.9a1 1 0 00-.9-.3l-1.2.2a1 1 0 01-1.1-.8l-.3-1.2a1 1 0 00-.6-.7l-1.1-.5a1 1 0 01-.6-1.3l.5-1.1a1 1 0 000-.9l-.5-1.1a1 1 0 01.6-1.3l1.1-.5a1 1 0 00.6-.7l.3-1.2a1 1 0 011.1-.8l1.2.2a1 1 0 00.9-.3zM12 15a3 3 0 100-6 3 3 0 000 6z' },
 ]
 
 // Shared so it persists across page navigation.
@@ -61,10 +62,14 @@ const collapsed = useState('sidebar-collapsed', () => false)
       <NuxtLink
         v-for="item in nav"
         :key="item.to"
-        :to="item.to"
+        :to="item.disabled ? '' : item.to"
         :title="collapsed ? item.label : undefined"
-        class="group flex items-center rounded-lg py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-        :class="collapsed ? 'justify-center px-0' : 'gap-3 px-3'"
+        class="group flex items-center rounded-lg py-2.5 text-sm font-medium text-slate-600 transition"
+        :class="[
+          collapsed ? 'justify-center px-0' : 'gap-3 px-3',
+          item.disabled ? 'pointer-events-none cursor-not-allowed opacity-40' : 'hover:bg-slate-50',
+        ]"
+        :aria-disabled="item.disabled || undefined"
         active-class="!bg-blue-50 !text-blue-700"
       >
         <svg

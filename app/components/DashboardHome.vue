@@ -79,13 +79,16 @@ const recent: RecentRow[] = [
     <!-- Recent Letters -->
     <section class="mt-8 rounded-xl border border-slate-200 bg-white p-6">
       <div class="flex items-center justify-between">
-        <h2 class="text-base font-semibold text-slate-900">Recent Letters</h2>
-        <button class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+        <div class="flex items-center gap-2">
+          <h2 class="text-base font-semibold text-slate-900">Recent Letters</h2>
+          <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">Coming soon</span>
+        </div>
+        <button disabled class="cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-400">
           View all
         </button>
       </div>
 
-      <div class="mt-4 overflow-x-auto">
+      <div class="pointer-events-none mt-4 overflow-x-auto opacity-40">
         <table class="w-full text-left text-sm">
           <thead>
             <tr class="border-b border-slate-200 text-[11px] uppercase tracking-wide text-slate-400">
