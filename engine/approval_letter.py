@@ -45,11 +45,13 @@ BRANDS = {
         'header': os.path.join(HERE, 'assets', 'wlth', 'approval-header.png'),
         'footer_logo': os.path.join(HERE, 'assets', 'wlth', 'footer-w.png'),
         'lender': 'WLTH', 'product': 'Ocean', 'team': 'The WLTH Team',
+        'bar': colors.HexColor('#4f46e5'),  # WLTH brand purple
     },
     'mma': {
         'header': os.path.join(HERE, 'assets', 'mma', 'approval-header.png'),
         'footer_logo': os.path.join(HERE, 'assets', 'mma', 'footer-w.png'),
         'lender': 'Mortgage Mart of Australia', 'product': 'Ultra', 'team': 'The Mortgage Mart Team',
+        'bar': colors.HexColor('#4f46e5'),
     },
 }
 
@@ -137,7 +139,7 @@ def build_approval_pdf(brand_id, v):
             ('TOPPADDING', (0, 0), (-1, -1), 4.6), ('BOTTOMPADDING', (0, 0), (-1, -1), 4.6),
         ]
         if bar_row:
-            s += [('SPAN', (0, 0), (-1, 0)), ('BACKGROUND', (0, 0), (-1, 0), BAR_BLUE),
+            s += [('SPAN', (0, 0), (-1, 0)), ('BACKGROUND', (0, 0), (-1, 0), brand['bar']),
                   ('TOPPADDING', (0, 0), (-1, 0), 2.5), ('BOTTOMPADDING', (0, 0), (-1, 0), 2.5)]
         return TableStyle(s)
 
