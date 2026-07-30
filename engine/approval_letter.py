@@ -53,7 +53,7 @@ BRANDS = {
     },
     'mma': {
         'header': os.path.join(HERE, 'assets', 'mma', 'approval-header.png'),
-        'footer_logo': os.path.join(HERE, 'assets', 'mma', 'footer-w.png'),
+        'footer_logo': os.path.join(HERE, 'assets', 'mma', 'footer-imm.png'),
         'lender': 'Mortgage Mart of Australia', 'product': 'Ultra', 'team': 'The Mortgage Mart Team',
         # dark theme
         'band': colors.HexColor('#1f232d'), 'title': colors.white,
@@ -98,7 +98,12 @@ def _page(canvas, doc, brand):
     canvas.setFillColor(colors.white)
     canvas.setFont(FONT, 9)
     canvas.drawString(LM + 8, 39.8, f"Yours Sincerely, {brand['team']}")
-    _draw_logo(canvas, brand['footer_logo'], PAGE_W - RM - 8 - 20.9, 35.9, 20.9, 15.1)
+    fl = brand['footer_logo']
+    if os.path.exists(fl):
+        iw, ih = ImageReader(fl).getSize()
+        fh = 14.0
+        fw = fh * iw / ih
+        canvas.drawImage(fl, PAGE_W - RM - 8 - fw, 31 + (25 - fh) / 2, width=fw, height=fh, mask='auto')
     canvas.restoreState()
 
 
