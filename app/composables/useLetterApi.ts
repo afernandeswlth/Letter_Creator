@@ -174,6 +174,66 @@ export function useLetterApi() {
     URL.revokeObjectURL(url)
   }
 
+  // --- form-driven letter types (Formal Approval, etc.) -------------------
+  const engineBrand = (brand: BrandId) => (brand === 'mortgage-mart' ? 'mma' : 'wlth')
+
+  /** POST /api/forms/preview — rasterised page images for a form letter. */
+  async function formPreview(
+    letterType: string,
+    brand: BrandId,
+    values: Record<string, string>,
+  ): Promise<string[]> {
+    const res = await $fetch<{ pages: string[] }>('/api/forms/preview', {
+      method: 'POST',
+      body: { letterType, brand: engineBrand(brand), values },
+    })
+    return res.pages
+  }
+
+  /** POST /api/forms/pdf — download a form letter's branded PDF. */
+  async function downloadFormPdf(
+    letterType: string,
+    brand: BrandId,
+    values: Record<string, string>,
+    filename: string,
+  ): Promise<void> {
+    const blob = await $fetch<Blob>('/api/forms/pdf', {
+      method: 'POST',
+      body: { letterType, brand: engineBrand(brand), values, filename },
+      responseType: 'blob',
+    })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${filename}.pdf`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  /** POST /api/forms/email — create a Gmail draft for a form letter. */
+  async function createFormEmailDraft(
+    letterType: string,
+    brand: BrandId,
+    values: Record<string, string>,
+    to: string,
+    filename: string,
+  ): Promise<DeliveryResult> {
+    const res = await $fetch<{ link: string; to: string; via: string }>('/api/forms/email', {
+      method: 'POST',
+      body: { letterType, brand: engineBrand(brand), values, to, filename },
+    })
+    return {
+      ok: true,
+      message:
+        res.via === 'zapier'
+          ? `Sent to Zapier for ${res.to} — check hello@wlth.com Drafts.`
+          : `Draft created for ${res.to}.`,
+      link: res.link,
+    }
+  }
+
   /** GET /api/letters — recent letters for the dashboard table (mock). */
   async function getRecentLetters(): Promise<LetterRecord[]> {
     return delay([
@@ -183,5 +243,5 @@ export function useLetterApi() {
     ])
   }
 
-  return { parseFunderDocs, renderLetters, previewPages, fetchPdf, downloadPdf, downloadZip, createEmailDraft, getRecentLetters }
+  return { parseFunderDocs, renderLetters, previewPages, fetchPdf, downloadPdf, downloadZip, createEmailDraft, formPreview, downloadFormPdf, createFormEmailDraft, getRecentLetters }
 }

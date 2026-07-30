@@ -65,6 +65,18 @@ export function useLetterWizard() {
   )
   const lastStep = computed(() => steps.value.length)
 
+  // Download/email filename for form letters, e.g. "WLTH Formal Approval Letter - John Smith".
+  const formFilename = computed(() => {
+    const t = currentType.value
+    if (!t) return 'Letter'
+    const label = state.value.brand === 'mortgage-mart' ? 'Mortgage Mart' : 'WLTH'
+    const v = state.value.fieldValues
+    const who = (v.borrowers || v.recipientName || '')
+      .replace(/^(mr|mrs|ms|miss|dr)\.?\s+/i, '')
+      .trim()
+    return `${label} ${t.label}${who ? ' - ' + who : ''}`
+  })
+
   function reset() {
     state.value = initialState()
   }
@@ -86,5 +98,5 @@ export function useLetterWizard() {
     state.value.brand = brand
   }
 
-  return { state, currentBrand, currentType, steps, reset, chooseType, goTo, next, back, setBrand }
+  return { state, currentBrand, currentType, steps, formFilename, reset, chooseType, goTo, next, back, setBrand }
 }

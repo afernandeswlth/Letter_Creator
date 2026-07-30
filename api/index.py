@@ -214,6 +214,93 @@ def email():
 
 
 # --------------------------------------------------------------------------
+# form-driven letter types (Formal Approval, etc.) — JSON body, no upload
+# --------------------------------------------------------------------------
+@app.post('/api/forms/pdf')
+def form_pdf():
+    data = request.get_json(force=True, silent=True) or {}
+    try:
+        pdf_bytes = cli.build_form_pdf(data.get('letterType', ''), data.get('brand', 'wlth'), data.get('values') or {})
+        name = (data.get('filename') or 'Letter').strip()
+        return Response(pdf_bytes, mimetype='application/pdf', headers={
+            'Content-Disposition': f'attachment; filename="{name}.pdf"',
+        })
+    except Exception as e:  # noqa: BLE001
+        return _json({'error': str(e)}, 500)
+
+
+@app.post('/api/forms/preview')
+def form_preview():
+    import fitz
+    data = request.get_json(force=True, silent=True) or {}
+    try:
+        pdf_bytes = cli.build_form_pdf(data.get('letterType', ''), data.get('brand', 'wlth'), data.get('values') or {})
+        doc = fitz.open(stream=pdf_bytes, filetype='pdf')
+        pages = ['data:image/png;base64,' + base64.b64encode(pg.get_pixmap(dpi=130).tobytes('png')).decode()
+                 for pg in doc]
+        return _json({'pages': pages})
+    except Exception as e:  # noqa: BLE001
+        return _json({'error': str(e)}, 500)
+
+
+@app.post('/api/forms/email')
+def form_email():
+    data = request.get_json(force=True, silent=True) or {}
+    to = (data.get('to') or '').strip()
+    if not to:
+        return _json({'error': 'Missing recipient email address'}, 400)
+    brand = data.get('brand', 'wlth')
+    letter_type = data.get('letterType', '')
+    values = data.get('values') or {}
+    try:
+        pdf_bytes = cli.build_form_pdf(letter_type, brand, values)
+    except Exception as e:  # noqa: BLE001
+        return _json({'error': f'Engine error: {e}'}, 500)
+
+    filename = (data.get('filename') or 'Letter').strip()
+    subject, html = form_email_content(letter_type, brand, values)
+
+    webhook = os.environ.get('ZAPIER_EMAIL_WEBHOOK_URL')
+    if not webhook:
+        return _json({'error': 'Email is not configured. Set ZAPIER_EMAIL_WEBHOOK_URL.'}, 500)
+    try:
+        import requests
+        d = {'to': to, 'subject': subject, 'body': html, 'filename': f'{filename}.pdf'}
+        files = {'attachment': (f'{filename}.pdf', pdf_bytes, 'application/pdf')}
+        res = requests.post(webhook, data=d, files=files, timeout=30)
+        if not res.ok:
+            return _json({'error': f'Zapier webhook returned {res.status_code}. {res.text[:200]}'}, 502)
+    except Exception as e:  # noqa: BLE001
+        return _json({'error': str(e)}, 502)
+    return _json({'ok': True, 'via': 'zapier',
+                  'link': 'https://mail.google.com/mail/u/0/#drafts', 'to': to})
+
+
+_FORM_LABELS = {'approval': 'Formal Approval'}
+
+
+def form_email_content(letter_type, brand, values):
+    b = _BRAND_EMAIL.get(brand, _BRAND_EMAIL['wlth'])
+    label = _FORM_LABELS.get(letter_type, 'Letter')
+    who = values.get('borrowers') or values.get('recipientName') or ''
+    first = (_strip_title(who).split() or ['there'])[0]
+    acct = values.get('loanAccountNumber', '')
+    subject = f"{b['label']} {label} Letter"
+    if who:
+        subject += f": {_strip_title(who)}"
+    if acct:
+        subject += f" - {acct}"
+    body = f"""
+    <p>Hi {first},</p>
+    <p>Please find attached your {b['label']} {label} letter.</p>
+    <p>If you have any questions, please reach out to us {b['contact_short']}</p>
+    <p>Warm regards,<br/>{b['team']}</p>"""
+    signature = f'<br/><br/>{SIGNATURE_HTML}' if SIGNATURE_HTML else ''
+    html = f"""<div style="font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #1e2430; line-height: 1.5;">{body}{signature}</div>""".strip()
+    return subject, html
+
+
+# --------------------------------------------------------------------------
 # email template (Python port of server/utils/emailTemplate.ts + signature.ts)
 # --------------------------------------------------------------------------
 _BRAND_EMAIL = {

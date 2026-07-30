@@ -95,3 +95,30 @@ export function welcomeEmail(input: EmailInput): { subject: string; html: string
 
   return { subject, html }
 }
+
+const FORM_LABELS: Record<string, string> = { approval: 'Formal Approval' }
+
+/** Subject + HTML body for a form-driven letter (e.g. Formal Approval). */
+export function formEmail(
+  letterType: string,
+  brandId: string,
+  values: Record<string, string>,
+): { subject: string; html: string } {
+  const brand = BRANDS[brandId] ?? BRANDS.wlth
+  const label = FORM_LABELS[letterType] ?? 'Letter'
+  const who = values.borrowers || values.recipientName || ''
+  const first = stripTitle(who).split(/\s+/)[0] || 'there'
+  const acct = values.loanAccountNumber || ''
+  let subject = `${brand.label} ${label} Letter`
+  if (who) subject += `: ${stripTitle(who)}`
+  if (acct) subject += ` - ${acct}`
+
+  const body = `
+    <p>Hi ${first},</p>
+    <p>Please find attached your ${brand.label} ${label} letter.</p>
+    <p>If you have any questions, please reach out to us ${brand.contactShort}</p>
+    <p>Warm regards,<br/>${brand.team}</p>`
+  const signature = SIGNATURE_HTML ? `<br/><br/>${SIGNATURE_HTML}` : ''
+  const html = `<div style="font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #1e2430; line-height: 1.5;">${body}${signature}</div>`.trim()
+  return { subject, html }
+}

@@ -1,9 +1,12 @@
 <script setup lang="ts">
 const { state, currentType, goTo, reset } = useLetterWizard()
 
-// The dashboard shows until a letter type is chosen. Welcome (an 'available'
-// upload type) runs the existing wizard; other types show a coming-soon panel.
-const isWelcome = computed(() => currentType.value?.status === 'available')
+// The dashboard shows until a letter type is chosen. An 'available' type runs
+// its wizard — 'upload' types (Welcome) use the funder-doc flow, 'form' types
+// (Formal Approval) use the fill-in flow. Other statuses show a coming-soon panel.
+const isAvailable = computed(() => currentType.value?.status === 'available')
+const isUpload = computed(() => currentType.value?.inputModel === 'upload')
+const showReset = computed(() => isAvailable.value)
 </script>
 
 <template>
@@ -28,7 +31,7 @@ const isWelcome = computed(() => currentType.value?.status === 'available')
         <h1 class="text-2xl font-bold text-slate-900">{{ currentType?.label }}</h1>
       </div>
       <button
-        v-if="isWelcome"
+        v-if="showReset"
         type="button"
         class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700"
         @click="reset"
@@ -40,16 +43,25 @@ const isWelcome = computed(() => currentType.value?.status === 'available')
       </button>
     </div>
 
-    <!-- Welcome letter wizard -->
-    <template v-if="isWelcome">
+    <!-- Available: run the wizard for this type -->
+    <template v-if="isAvailable">
       <div class="mt-6">
         <WizardProgress :current="state.step" @select="goTo" />
       </div>
       <div class="mt-6">
-        <WizardStepUpload v-if="state.step === 1" />
-        <WizardStepFillDetails v-else-if="state.step === 2" />
-        <WizardStepPreview v-else-if="state.step === 3" />
-        <WizardStepSaveSend v-else-if="state.step === 4" />
+        <!-- upload flow (Welcome) -->
+        <template v-if="isUpload">
+          <WizardStepUpload v-if="state.step === 1" />
+          <WizardStepFillDetails v-else-if="state.step === 2" />
+          <WizardStepPreview v-else-if="state.step === 3" />
+          <WizardStepSaveSend v-else-if="state.step === 4" />
+        </template>
+        <!-- form flow (Formal Approval, etc.) -->
+        <template v-else>
+          <WizardStepFillForm v-if="state.step === 1" />
+          <WizardStepFormPreview v-else-if="state.step === 2" />
+          <WizardStepFormSaveSend v-else-if="state.step === 3" />
+        </template>
       </div>
     </template>
 

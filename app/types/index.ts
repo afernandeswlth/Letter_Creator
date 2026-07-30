@@ -34,6 +34,7 @@ export interface LetterTypeField {
   required: boolean
   placeholder?: string
   help?: string
+  default?: string // pre-filled value (a 'date' field defaults to today when empty)
   options?: { value: string; label: string }[] // for type: 'select'
   section?: string // optional grouping heading in the form UI
 }

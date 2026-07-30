@@ -72,6 +72,36 @@ def cmd_render(brand, dd_bsb, dd_account, paths):
     return {'loanType': loan_type, 'parties': parties}
 
 
+# --- form-driven letter types (no funder upload) ---------------------------
+def build_form_pdf(letter_type, brand, values):
+    """Render a form-driven letter type (e.g. Formal Approval) to PDF bytes."""
+    import approval_letter
+    renderers = {
+        'approval': approval_letter.build_approval_pdf,
+    }
+    fn = renderers.get(letter_type)
+    if fn is None:
+        raise ValueError(f'no renderer for letter type "{letter_type}"')
+    return fn(brand, values)
+
+
+def cmd_form_pdf(letter_type, brand, values_json):
+    import sys as _sys
+    _sys.stdout.buffer.write(build_form_pdf(letter_type, brand, json.loads(values_json)))
+    return 0
+
+
+def cmd_form_preview(letter_type, brand, values_json):
+    import base64
+    import fitz
+    pdf = build_form_pdf(letter_type, brand, json.loads(values_json))
+    doc = fitz.open(stream=pdf, filetype='pdf')
+    pages = ['data:image/png;base64,' + base64.b64encode(pg.get_pixmap(dpi=130).tobytes('png')).decode()
+             for pg in doc]
+    print(json.dumps({'pages': pages}))
+    return 0
+
+
 def _build_party_pdf(brand, dd_bsb, dd_account, party_index, paths):
     from pdf_letter import build_pdf
     docs, _loan_type, smsf_number = group(paths)
@@ -136,6 +166,12 @@ def main(argv):
     if cmd == 'zip':
         brand, dd_bsb, dd_account, *paths = rest
         return cmd_zip(brand, dd_bsb, dd_account, paths)
+    if cmd == 'form-pdf':
+        letter_type, brand, values_json = rest
+        return cmd_form_pdf(letter_type, brand, values_json)
+    if cmd == 'form-preview':
+        letter_type, brand, values_json = rest
+        return cmd_form_preview(letter_type, brand, values_json)
     if cmd == 'parse':
         out = cmd_parse(rest)
     elif cmd == 'render':

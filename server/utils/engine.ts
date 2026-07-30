@@ -107,6 +107,44 @@ export async function runEnginePdf(
   })
 }
 
+/** Render a form-driven letter type (e.g. Formal Approval) to PDF bytes. */
+export async function runEngineFormPdf(
+  letterType: string,
+  brand: string,
+  values: Record<string, unknown>,
+): Promise<Buffer> {
+  const args = [ENGINE, 'form-pdf', letterType, brand, JSON.stringify(values)]
+  return new Promise<Buffer>((resolve, reject) => {
+    execFile(
+      'python3', args,
+      { cwd: CWD(), encoding: 'buffer', maxBuffer: 32 * 1024 * 1024 },
+      (err, out, errOut) => {
+        if (err) reject(new Error(errOut?.toString() || err.message))
+        else resolve(out as Buffer)
+      },
+    )
+  })
+}
+
+/** Rasterise a form-driven letter to page images (data URLs) for preview. */
+export async function runEngineFormPreview(
+  letterType: string,
+  brand: string,
+  values: Record<string, unknown>,
+): Promise<{ pages: string[] }> {
+  const args = [ENGINE, 'form-preview', letterType, brand, JSON.stringify(values)]
+  return new Promise<{ pages: string[] }>((resolve, reject) => {
+    execFile(
+      'python3', args,
+      { cwd: CWD(), maxBuffer: 64 * 1024 * 1024 },
+      (err, out, errOut) => {
+        if (err) reject(new Error(errOut || err.message))
+        else resolve(JSON.parse(out) as { pages: string[] })
+      },
+    )
+  })
+}
+
 /** Build a ZIP of every party's branded PDF; returns the ZIP bytes. */
 export async function runEngineZip(
   files: UploadedFile[],
