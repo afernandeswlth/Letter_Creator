@@ -16,6 +16,7 @@ export interface WizardState {
   // 'form' letter types (e.g. Approval, Discharge):
   fieldValues: FieldValues // keyed by LetterTypeField.id
   formMode: 'manual' | 'schedule4' // fill the form by hand, or auto-fill from an upload
+  formParsed: boolean // a source doc (Schedule 4) has been read — persists across steps
   rendered: Party[] // parties with merged letter text
   deliveries: Record<string, { drive: boolean; email: boolean }>
 }
@@ -33,6 +34,7 @@ function initialState(): WizardState {
     offsetLinked: null,
     fieldValues: {},
     formMode: 'schedule4',
+    formParsed: false,
     rendered: [],
     deliveries: {},
   }
