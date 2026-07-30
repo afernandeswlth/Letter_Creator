@@ -25,7 +25,7 @@ const collapsed = useState('sidebar-collapsed', () => false)
     <!-- Header: brand + collapse toggle -->
     <div class="flex items-center" :class="collapsed ? 'justify-center' : 'justify-between px-2'">
       <div v-if="!collapsed">
-        <p class="text-lg font-bold leading-tight text-slate-900">Welcome Letter</p>
+        <p class="text-lg font-bold leading-tight text-slate-900">Letter</p>
         <p class="text-lg font-bold leading-tight text-blue-600">Generator</p>
       </div>
       <button
