@@ -1,6 +1,46 @@
-// Shared domain types for the Welcome Letter Generator.
+// Shared domain types for the Letter Generator.
 
 export type BrandId = 'mortgage-mart' | 'wlth'
+
+// ---------------------------------------------------------------------------
+// Letter types
+// ---------------------------------------------------------------------------
+// The app generates several kinds of letters. Each "letter type" is registered
+// in app/utils/letterTypes.ts and declares how it collects input and how it is
+// rendered. Two input models exist:
+//   • 'upload' — the user uploads a source .docx that the engine parses and
+//     rebrands (this is how Welcome Letters work).
+//   • 'form'   — the user fills in fields defined by the type's schema, which
+//     are merged into a branded template (Approval, Discharge, etc.).
+
+export type LetterTypeId = 'welcome' | 'approval' | 'discharge'
+export type InputModel = 'upload' | 'form'
+export type LetterTypeStatus = 'available' | 'coming-soon'
+
+/** One fillable field for a 'form' letter type. */
+export interface LetterTypeField {
+  id: string
+  label: string
+  type: 'text' | 'textarea' | 'date' | 'number' | 'email' | 'currency' | 'select'
+  required: boolean
+  placeholder?: string
+  help?: string
+  options?: { value: string; label: string }[] // for type: 'select'
+  section?: string // optional grouping heading in the form UI
+}
+
+export interface LetterType {
+  id: LetterTypeId
+  label: string
+  description: string
+  icon: string // inline SVG path (24x24 outline)
+  status: LetterTypeStatus
+  inputModel: InputModel
+  /** Engine identifier passed to the Python CLI (e.g. 'welcome', 'approval'). */
+  engine: string
+  /** Field schema for 'form' types. */
+  fields?: LetterTypeField[]
+}
 
 export interface Brand {
   id: BrandId

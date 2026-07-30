@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { WIZARD_STEPS } from '~/composables/useLetterWizard'
+const { steps } = useLetterWizard()
 
 const props = defineProps<{ current: number }>()
 const emit = defineEmits<{ (e: 'select', step: number): void }>()
@@ -15,7 +15,7 @@ function stateOf(id: number): 'done' | 'active' | 'todo' {
   <div
     class="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-6 py-5"
   >
-    <template v-for="(step, i) in WIZARD_STEPS" :key="step.id">
+    <template v-for="(step, i) in steps" :key="step.id">
       <button
         type="button"
         class="flex items-center gap-3 text-left"
@@ -54,7 +54,7 @@ function stateOf(id: number): 'done' | 'active' | 'todo' {
       </button>
 
       <div
-        v-if="i < WIZARD_STEPS.length - 1"
+        v-if="i < steps.length - 1"
         class="mx-4 h-px flex-1 bg-slate-200"
       />
     </template>
