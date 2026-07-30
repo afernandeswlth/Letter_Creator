@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { BRAND_LIST } from '~/utils/brands'
-import type { BrandId, LetterTypeField } from '~/types'
+import type { LetterTypeField } from '~/types'
 
-const { state, currentType, setBrand, next } = useLetterWizard()
+const { state, currentType, next } = useLetterWizard()
 const { parseFormSource } = useLetterApi()
 
 const showErrors = ref(false)
@@ -101,19 +100,7 @@ function onNext() {
 
     <!-- Brand -->
     <div class="mt-6">
-      <p class="text-sm font-medium text-slate-700">Brand</p>
-      <div class="mt-2 grid grid-cols-2 gap-3 sm:max-w-lg">
-        <button
-          v-for="brand in BRAND_LIST"
-          :key="brand.id"
-          type="button"
-          class="flex h-16 items-center justify-center rounded-lg border transition"
-          :class="state.brand === brand.id ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-slate-200 bg-white hover:border-slate-300'"
-          @click="setBrand(brand.id as BrandId)"
-        >
-          <img :src="brand.logo" :alt="brand.name" class="w-auto object-contain" :class="brand.id === 'wlth' ? 'max-h-5' : 'max-h-8'" />
-        </button>
-      </div>
+      <BrandSelector />
     </div>
 
     <!-- Default: Schedule 4 upload -->
