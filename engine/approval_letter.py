@@ -56,9 +56,9 @@ BRANDS = {
         'footer_logo': os.path.join(HERE, 'assets', 'mma', 'footer-w.png'),
         'lender': 'Mortgage Mart of Australia', 'product': 'Ultra', 'team': 'The Mortgage Mart Team',
         # dark theme
-        'band': colors.HexColor('#1e222d'), 'title': colors.white,
-        'bar': colors.black, 'accent': '#1e222d',
-        'footer_band': colors.HexColor('#1e222d'),
+        'band': colors.HexColor('#1f232d'), 'title': colors.white,
+        'bar': colors.black, 'accent': '#1f232d',
+        'footer_band': colors.HexColor('#1f232d'),
     },
 }
 
