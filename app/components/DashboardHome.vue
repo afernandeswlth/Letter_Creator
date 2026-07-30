@@ -37,17 +37,24 @@ const recent: RecentRow[] = [
           v-for="t in LETTER_TYPE_LIST"
           :key="t.id"
           type="button"
-          class="group flex flex-col rounded-xl border border-slate-200 bg-white p-5 text-left transition hover:border-blue-300 hover:shadow-sm"
-          @click="chooseType(t.id)"
+          :disabled="t.status === 'disabled'"
+          class="group flex flex-col rounded-xl border border-slate-200 bg-white p-5 text-left transition"
+          :class="t.status === 'disabled'
+            ? 'cursor-not-allowed opacity-60'
+            : 'hover:border-blue-300 hover:shadow-sm'"
+          @click="t.status !== 'disabled' && chooseType(t.id)"
         >
           <div class="flex items-start justify-between">
-            <span class="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+            <span
+              class="flex h-11 w-11 items-center justify-center rounded-lg"
+              :class="t.status === 'disabled' ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-blue-600'"
+            >
               <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
                 <path :d="t.icon" />
               </svg>
             </span>
             <span
-              v-if="t.status === 'coming-soon'"
+              v-if="t.status !== 'available'"
               class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500"
             >
               Coming soon
@@ -55,12 +62,16 @@ const recent: RecentRow[] = [
           </div>
           <h3 class="mt-4 text-sm font-semibold text-slate-900">{{ t.label }}</h3>
           <p class="mt-1 flex-1 text-sm text-slate-500">{{ t.description }}</p>
-          <span class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-blue-600 group-hover:gap-2 transition-all">
+          <span
+            v-if="t.status !== 'disabled'"
+            class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-blue-600 group-hover:gap-2 transition-all"
+          >
             Create Letter
             <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M5 12h14M13 6l6 6-6 6" />
             </svg>
           </span>
+          <span v-else class="mt-4 text-sm font-medium text-slate-400">Not available yet</span>
         </button>
       </div>
     </section>

@@ -49,7 +49,7 @@ export const LETTER_TYPES: Record<LetterTypeId, LetterType> = {
     label: 'Pre-Approval Letter',
     description: 'Create pre-approval letters for eligible customers.',
     icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM6 21a6 6 0 0112 0',
-    status: 'coming-soon',
+    status: 'disabled',
     inputModel: 'form',
     engine: 'pre-approval',
     fields: [
@@ -65,7 +65,7 @@ export const LETTER_TYPES: Record<LetterTypeId, LetterType> = {
     label: 'Conditional Approval Letter',
     description: 'Generate letters for approvals subject to specific conditions.',
     icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
-    status: 'coming-soon',
+    status: 'disabled',
     inputModel: 'form',
     engine: 'conditional-approval',
     fields: [
@@ -82,7 +82,7 @@ export const LETTER_TYPES: Record<LetterTypeId, LetterType> = {
     label: 'Discharge Confirmation Letter',
     description: 'Confirm loan discharge and account closure with this letter.',
     icon: 'M9 12l2 2 4-4m-3-8.3l7 3.1v4.7c0 4.4-3 8.5-7 9.7-4-1.2-7-5.3-7-9.7V6.5l7-3.1z',
-    status: 'coming-soon',
+    status: 'disabled',
     inputModel: 'form',
     engine: 'discharge',
     fields: [
@@ -99,7 +99,7 @@ export const LETTER_TYPES: Record<LetterTypeId, LetterType> = {
     label: 'Custom Letter',
     description: 'Create a custom letter using templates or your own content.',
     icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.4-9.6a2 2 0 112.8 2.8L11.8 15.2 8 16l.8-3.8 8.8-8.8z',
-    status: 'coming-soon',
+    status: 'disabled',
     inputModel: 'form',
     engine: 'custom',
     fields: [

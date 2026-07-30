@@ -21,7 +21,10 @@ export type LetterTypeId =
   | 'discharge'
   | 'custom'
 export type InputModel = 'upload' | 'form'
-export type LetterTypeStatus = 'available' | 'coming-soon'
+// 'available'  — fully working (clickable, runs its flow)
+// 'coming-soon' — clickable, in active development (shows the setup panel)
+// 'disabled'    — greyed out and unclickable (planned, not started)
+export type LetterTypeStatus = 'available' | 'coming-soon' | 'disabled'
 
 /** One fillable field for a 'form' letter type. */
 export interface LetterTypeField {
