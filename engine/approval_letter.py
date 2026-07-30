@@ -46,13 +46,19 @@ BRANDS = {
         'header': os.path.join(HERE, 'assets', 'wlth', 'approval-header.png'),
         'footer_logo': os.path.join(HERE, 'assets', 'wlth', 'footer-w.png'),
         'lender': 'WLTH', 'product': 'Ocean', 'team': 'The WLTH Team',
-        'bar': colors.HexColor('#2157be'),  # WLTH blue
+        # light theme
+        'band': colors.HexColor('#f4f4f4'), 'title': colors.HexColor('#2157be'),
+        'bar': colors.HexColor('#2157be'), 'accent': '#2157be',
+        'footer_band': colors.HexColor('#16224b'),
     },
     'mma': {
         'header': os.path.join(HERE, 'assets', 'mma', 'approval-header.png'),
         'footer_logo': os.path.join(HERE, 'assets', 'mma', 'footer-w.png'),
         'lender': 'Mortgage Mart of Australia', 'product': 'Ultra', 'team': 'The Mortgage Mart Team',
-        'bar': colors.HexColor('#2157be'),
+        # dark theme
+        'band': colors.HexColor('#1e222d'), 'title': colors.white,
+        'bar': colors.black, 'accent': '#1e222d',
+        'footer_band': colors.HexColor('#1e222d'),
     },
 }
 
@@ -79,15 +85,15 @@ def _draw_logo(canvas, path, x, y, w, h):
 
 def _page(canvas, doc, brand):
     canvas.saveState()
-    # header grey band (full width) + title + brand mark (bleeds top-right)
-    canvas.setFillColor(GREY_BAND)
+    # header band (full width) + title + brand mark (bleeds top-right)
+    canvas.setFillColor(brand['band'])
     canvas.rect(0, PAGE_H - 47, PAGE_W, 47, stroke=0, fill=1)
-    canvas.setFillColor(TITLE_BLUE)
+    canvas.setFillColor(brand['title'])
     canvas.setFont(BOLD, 15)
     canvas.drawString(LM, PAGE_H - 31.5, 'Formal Approval')
     _draw_logo(canvas, brand['header'], PAGE_W - 82.2, PAGE_H - 47.2, 82.2, 46.5)
-    # navy footer band (content width, not full-bleed) + sign-off + brand mark
-    canvas.setFillColor(NAVY)
+    # footer band (content width, not full-bleed) + sign-off + brand mark
+    canvas.setFillColor(brand['footer_band'])
     canvas.rect(LM, 31, CONTENT_W, 25, stroke=0, fill=1)
     canvas.setFillColor(colors.white)
     canvas.setFont(FONT, 9)
@@ -151,7 +157,7 @@ def build_approval_pdf(brand_id, v):
     flow.append(Paragraph(esc(g('date')), date_s))
     flow.append(Spacer(1, 15))
     flow.append(Paragraph(
-        f'<font color="#2257be">We have the pleasure</font> in forwarding you Formal Approval '
+        f'<font color="{brand["accent"]}">We have the pleasure</font> in forwarding you Formal Approval '
         'for finance.<br/>The details of the loan are as follows:', intro))
     flow.append(Spacer(1, 14))
 
