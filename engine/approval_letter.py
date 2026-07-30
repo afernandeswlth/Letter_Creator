@@ -39,20 +39,20 @@ BAR_BLUE = colors.HexColor('#2156bd')
 GREY_BAND = colors.HexColor('#f4f4f4')
 NAVY = colors.HexColor('#16214a')
 GRIDC = colors.HexColor('#e6e8eb')
-ZEBRA = colors.HexColor('#f2f3f5')  # alternating row shade
+ZEBRA = colors.HexColor('#e9ecee')  # alternating row shade
 
 BRANDS = {
     'wlth': {
         'header': os.path.join(HERE, 'assets', 'wlth', 'approval-header.png'),
         'footer_logo': os.path.join(HERE, 'assets', 'wlth', 'footer-w.png'),
         'lender': 'WLTH', 'product': 'Ocean', 'team': 'The WLTH Team',
-        'bar': colors.HexColor('#4f46e5'),  # WLTH brand purple
+        'bar': colors.HexColor('#3e35bb'),  # WLTH brand purple
     },
     'mma': {
         'header': os.path.join(HERE, 'assets', 'mma', 'approval-header.png'),
         'footer_logo': os.path.join(HERE, 'assets', 'mma', 'footer-w.png'),
         'lender': 'Mortgage Mart of Australia', 'product': 'Ultra', 'team': 'The Mortgage Mart Team',
-        'bar': colors.HexColor('#4f46e5'),
+        'bar': colors.HexColor('#3e35bb'),
     },
 }
 

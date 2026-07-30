@@ -22,7 +22,7 @@ const selectedName = computed(
         type="button"
         class="relative flex h-16 items-center justify-center rounded-xl transition-all duration-150"
         :class="[
-          brand.id === 'wlth' ? 'bg-[#4f46e5]' : 'bg-neutral-900',
+          brand.id === 'wlth' ? 'bg-[#3e35bb]' : 'bg-neutral-900',
           state.brand === brand.id
             ? 'scale-[1.03] opacity-100 shadow-lg ring-4 ring-blue-500 ring-offset-2'
             : 'opacity-40 grayscale hover:opacity-70',
