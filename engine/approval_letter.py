@@ -39,6 +39,7 @@ BAR_BLUE = colors.HexColor('#2156bd')
 GREY_BAND = colors.HexColor('#f4f4f4')
 NAVY = colors.HexColor('#16214a')
 GRIDC = colors.HexColor('#e6e8eb')
+ZEBRA = colors.HexColor('#f2f3f5')  # alternating row shade
 
 BRANDS = {
     'wlth': {
@@ -140,7 +141,9 @@ def build_approval_pdf(brand_id, v):
         ]
         if bar_row:
             s += [('SPAN', (0, 0), (-1, 0)), ('BACKGROUND', (0, 0), (-1, 0), brand['bar']),
-                  ('TOPPADDING', (0, 0), (-1, 0), 2.5), ('BOTTOMPADDING', (0, 0), (-1, 0), 2.5)]
+                  ('TOPPADDING', (0, 0), (-1, 0), 2.5), ('BOTTOMPADDING', (0, 0), (-1, 0), 2.5),
+                  # zebra-stripe the data rows (gray / white), starting gray under the bar
+                  ('ROWBACKGROUNDS', (0, 1), (-1, -1), [ZEBRA, colors.white])]
         return TableStyle(s)
 
     flow = []
