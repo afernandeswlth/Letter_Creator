@@ -89,7 +89,7 @@ def parse_form_source(letter_type, brand, path):
     """Extract field values from an uploaded source doc (e.g. a Schedule 4)."""
     if letter_type == 'approval':
         import approval_schedule4
-        return approval_schedule4.parse_schedule4(path)
+        return approval_schedule4.parse_schedule4(path, brand)
     return {}
 
 

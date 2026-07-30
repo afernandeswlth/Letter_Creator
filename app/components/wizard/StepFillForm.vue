@@ -7,7 +7,7 @@ const { parseFormSource } = useLetterApi()
 
 const showErrors = ref(false)
 
-const today = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
+const today = new Date().toLocaleDateString('en-GB') // dd/mm/yyyy
 
 const fields = computed<LetterTypeField[]>(() => currentType.value?.fields ?? [])
 
