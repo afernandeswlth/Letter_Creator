@@ -22,11 +22,23 @@ const collapsed = useState('sidebar-collapsed', () => false)
     class="flex h-full flex-none flex-col border-r border-slate-200 bg-white py-6 transition-all duration-200"
     :class="collapsed ? 'w-[72px] px-2' : 'w-64 px-4'"
   >
-    <!-- Header: brand + collapse toggle -->
-    <div class="flex items-center" :class="collapsed ? 'justify-center' : 'justify-between px-2'">
-      <div v-if="!collapsed">
-        <p class="text-lg font-bold leading-tight text-slate-900">Letter</p>
-        <p class="text-lg font-bold leading-tight text-blue-600">Generator</p>
+    <!-- WLTH wordmark -->
+    <div v-if="!collapsed" class="px-2">
+      <img src="/logos/wlth.png" alt="WLTH" class="h-7 w-auto object-contain" />
+    </div>
+
+    <!-- Product brand + collapse toggle -->
+    <div class="mt-4 flex items-center" :class="collapsed ? 'justify-center' : 'justify-between px-2'">
+      <div v-if="!collapsed" class="flex items-center gap-2">
+        <span class="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-blue-600 text-white">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h12l4 4v12a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1zM9 9h4M9 13h6M9 17h6" />
+          </svg>
+        </span>
+        <div class="leading-tight">
+          <p class="text-sm font-bold text-slate-900">Letter</p>
+          <p class="text-sm font-bold text-blue-600">Generator</p>
+        </div>
       </div>
       <button
         type="button"
@@ -72,24 +84,18 @@ const collapsed = useState('sidebar-collapsed', () => false)
 
     <hr class="my-4 border-slate-200" />
 
-    <button
-      type="button"
-      :title="collapsed ? 'Sign Out' : undefined"
-      class="flex items-center rounded-lg py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-      :class="collapsed ? 'justify-center px-0' : 'gap-3 px-3'"
-    >
-      <svg
-        class="h-5 w-5 flex-none"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.7"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <path d="M15 12H3m0 0l4-4m-4 4l4 4M15 4h4a1 1 0 011 1v14a1 1 0 01-1 1h-4" />
+    <!-- User chip -->
+    <div class="flex items-center" :class="collapsed ? 'justify-center' : 'gap-3 px-1'">
+      <span class="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-600">
+        AU
+      </span>
+      <div v-if="!collapsed" class="min-w-0 flex-1">
+        <p class="truncate text-sm font-medium text-slate-900">Admin User</p>
+        <p class="truncate text-xs text-slate-400">admin@company.com</p>
+      </div>
+      <svg v-if="!collapsed" class="h-4 w-4 flex-none text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 9l6 6 6-6" />
       </svg>
-      <span v-if="!collapsed">Sign Out</span>
-    </button>
+    </div>
   </aside>
 </template>

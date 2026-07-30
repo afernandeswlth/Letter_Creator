@@ -13,7 +13,13 @@ export type BrandId = 'mortgage-mart' | 'wlth'
 //   • 'form'   — the user fills in fields defined by the type's schema, which
 //     are merged into a branded template (Approval, Discharge, etc.).
 
-export type LetterTypeId = 'welcome' | 'approval' | 'discharge'
+export type LetterTypeId =
+  | 'welcome'
+  | 'approval'
+  | 'pre-approval'
+  | 'conditional-approval'
+  | 'discharge'
+  | 'custom'
 export type InputModel = 'upload' | 'form'
 export type LetterTypeStatus = 'available' | 'coming-soon'
 
