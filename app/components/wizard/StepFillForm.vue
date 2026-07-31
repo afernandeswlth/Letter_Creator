@@ -41,7 +41,6 @@ const dragging = ref(false)
 const reading = ref(false)
 const readMsg = ref('')
 const readErr = ref('')
-const hasRead = ref(false) // an S4 has been successfully read → allow Preview
 
 function pickFile() {
   fileInput.value?.click()
@@ -61,7 +60,7 @@ function onFile(list: FileList | null | undefined) {
 function removeFile() {
   state.value.files = []
   readMsg.value = ''
-  hasRead.value = false
+  state.value.formParsed = false
 }
 
 async function readSchedule4() {
@@ -69,12 +68,12 @@ async function readSchedule4() {
   reading.value = true
   readErr.value = ''
   readMsg.value = ''
-  hasRead.value = false
+  state.value.formParsed = false
   try {
     const values = await parseFormSource(currentType.value.engine, state.value.brand, state.value.files[0]!)
     const keys = Object.keys(values).filter((k) => values[k])
     for (const k of keys) state.value.fieldValues[k] = values[k]!
-    hasRead.value = keys.length > 0
+    state.value.formParsed = keys.length > 0
     readMsg.value = keys.length
       ? `Read ${keys.length} field${keys.length === 1 ? '' : 's'} from the Schedule 4. Continue to the preview to review.`
       : 'Uploaded, but no fields could be read automatically. Try Create Manually.'
@@ -95,7 +94,7 @@ function onNext() {
   // Schedule 4 flow: once an S4 is read, proceed to Preview (review there).
   // Manual flow: require all fields.
   if (state.value.formMode === 'schedule4') {
-    if (hasRead.value) next()
+    if (state.value.formParsed) next()
   } else if (isValid.value) {
     next()
   }
@@ -150,7 +149,7 @@ function onNext() {
               </svg>
               Reading…
             </span>
-            <span v-else-if="readMsg" class="inline-flex items-center gap-1 text-sm font-medium text-green-700">
+            <span v-else-if="state.formParsed" class="inline-flex items-center gap-1 text-sm font-medium text-green-700">
               <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7" /></svg>
               Read
             </span>
@@ -229,7 +228,7 @@ function onNext() {
     </template>
 
     <!-- Validation hint for Schedule 4 mode (fields are hidden) -->
-    <p v-if="showErrors && !hasRead && state.formMode === 'schedule4'" class="mt-4 text-sm text-red-600">
+    <p v-if="showErrors && !state.formParsed && state.formMode === 'schedule4'" class="mt-4 text-sm text-red-600">
       Please upload a Schedule 4 before continuing.
     </p>
 

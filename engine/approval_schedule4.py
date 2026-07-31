@@ -52,12 +52,18 @@ def _norm(label):
 
 
 def _after(lines, *labels):
-    """Value on the line after the first line matching any of `labels`
-    (colon- and case-insensitive). Returns '' if none match."""
-    wanted = {_norm(l) for l in labels}
-    for i in range(len(lines) - 1):
-        if _norm(lines[i]) in wanted:
-            return lines[i + 1].strip()
+    """Value on the line after a label. Labels are tried in PRIORITY order:
+    the first label (in argument order) that has a non-empty value anywhere in
+    the document wins — so callers list the preferred source first, and a junk
+    value under a lower-priority label can't shadow the real one on a later page.
+    Colon- and case-insensitive. Returns '' if none match."""
+    for label in labels:
+        target = _norm(label)
+        for i in range(len(lines) - 1):
+            if _norm(lines[i]) == target:
+                val = lines[i + 1].strip()
+                if val:
+                    return val
     return ''
 
 
@@ -104,6 +110,18 @@ def _term_years(term):
     if m:
         return f'{round(int(m.group(1)) / 12)} Years'
     return term
+
+
+def _io_years(months):
+    """Interest-only period label from a month count: '60' -> '5 Years'."""
+    m = re.search(r'\d+', months or '')
+    if not m:
+        return ''
+    n = int(m.group())
+    if n and n % 12 == 0:
+        y = n // 12
+        return f"{y} Year{'s' if y != 1 else ''}"
+    return f"{n} Month{'s' if n != 1 else ''}"
 
 
 def _special_conditions(lines, brand):
@@ -180,15 +198,32 @@ def parse_schedule4(path, brand='wlth'):
     put('loanAmount', _after(lines, 'Loan Amount', 'Total Loan Amount'))
     put('loanTerm', _term_years(_after(lines, 'Loan Term (Years)', 'Total Loan Term', 'Loan Term')))
     rate = _after(lines, 'Interest Rate')
-    put('interestRate', rate)
-    put('revertRate', rate)
-    put('monthlyRepayment', _after(lines, 'Initial Repayment Amount', 'Repayment Amount', 'Monthly Repayment Amount'))
+    rtype = _after(lines, 'Repayment Type')
+    repay = _after(lines, 'Initial Repayment Amount', 'Repayment Amount', 'Monthly Repayment Amount')
+    revert_rate = _after(lines, 'Revert Interest Rate', 'Reversion Interest Rate')
+    revert_repay = _after(lines, 'Revert Repayment Amount', 'Reversion Repayment Amount')
+    io_months = _after(lines, 'Interest Only Period (months)', 'Interest Only Period (Months)', 'Interest Only Period')
+    is_io = 'interest only' in rtype.lower()
+
+    if is_io and (revert_rate or revert_repay):
+        # Interest-only that reverts to P&I: the IO-period repayment is
+        # "Unascertainable", so present the steady-state figures — note the IO
+        # term against the interest rate, and show the revert P&I rate/repayment.
+        yrs = _io_years(io_months)
+        put('interestRate', f'{rate}  {yrs} IO' if rate and yrs else rate)
+        put('revertRate', revert_rate or rate)
+        put('monthlyRepayment', revert_repay or repay)
+        put('repaymentType', 'P&I')
+    else:
+        put('interestRate', rate)
+        put('revertRate', revert_rate or rate)
+        put('monthlyRepayment', repay)
+        put('repaymentType', 'Interest Only' if is_io else 'P&I')
+
     put('productName', _after(lines, 'Loan Product', 'Product Name'))  # marketing product name
 
     itype = _after(lines, 'Interest Type', 'Interest Rate Type')
     put('rateType', 'Fixed' if 'fixed' in itype.lower() else 'Variable')
-    rtype = _after(lines, 'Repayment Type')
-    put('repaymentType', 'Interest Only' if 'interest only' in rtype.lower() else 'P&I')
     offset = _after(lines, 'Offset account', 'Offset Account Y/N')
     put('offsetAccount', 'No' if offset.lower().startswith('n') else 'Yes')
     put('redrawFacility', 'N/A')
@@ -220,7 +255,17 @@ def parse_schedule4(path, brand='wlth'):
     # guarantors) lists only the borrower(s) in the Applicant Overview; its
     # 'Ownership' is just the borrowers again, so we don't add a Mortgagor row.
     ptype = (_after(lines, 'Product Type', 'Borrower Classification') or '').lower()
-    is_trust = (' atf ' in ' ' + borrower.lower() + ' ') or bool(gs) or 'smsf' in ptype or 'trust' in ptype
+
+    def _selected(kw):
+        # Checkbox-style line ("Standard X   SMSF □   Non Res □"): the option is
+        # only chosen when it's ticked (X/☒/✓), not merely listed. For free-text
+        # product-type fields with no marker, fall back to plain substring.
+        m = re.search(r'\b' + kw + r'\b\s*([x☒☑✓✗□☐])', ptype)
+        if m:
+            return m.group(1) in 'x☒☑✓✗'
+        return kw in ptype
+
+    is_trust = (' atf ' in ' ' + borrower.lower() + ' ') or bool(gs) or _selected('smsf') or _selected('trust')
     if is_trust:
         put('mortgagors', _after(lines, 'Security Ownership', 'Ownership'))
 
