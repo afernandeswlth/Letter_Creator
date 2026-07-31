@@ -53,7 +53,7 @@ const UPLOAD_STEPS = [
 const FORM_STEPS = [
   { id: 1, label: 'Enter Details' },
   { id: 2, label: 'Preview' },
-  { id: 3, label: 'Save & Send' },
+  { id: 3, label: 'Download' },
 ] as const
 
 // Kept for backwards-compatibility with existing imports.
@@ -84,6 +84,26 @@ export function useLetterWizard() {
   function reset() {
     state.value = initialState()
   }
+  /** Start this letter over: keep the chosen type, return to step 1 (Enter
+   *  Details) and clear everything else — including any uploaded Schedule 4. */
+  function resetForm() {
+    const letterType = state.value.letterType
+    state.value = initialState()
+    state.value.letterType = letterType
+  }
+
+  // Confirm before leaving the wizard for the landing page (back arrow / Done).
+  const confirmingHome = useState<boolean>('confirm-home', () => false)
+  function requestGoHome() {
+    confirmingHome.value = true
+  }
+  function cancelGoHome() {
+    confirmingHome.value = false
+  }
+  function confirmGoHome() {
+    confirmingHome.value = false
+    reset()
+  }
   /** Choose a letter type and start its wizard at step 1. */
   function chooseType(id: LetterTypeId) {
     reset()
@@ -102,5 +122,5 @@ export function useLetterWizard() {
     state.value.brand = brand
   }
 
-  return { state, currentBrand, currentType, steps, formFilename, reset, chooseType, goTo, next, back, setBrand }
+  return { state, currentBrand, currentType, steps, formFilename, reset, resetForm, chooseType, goTo, next, back, setBrand, confirmingHome, requestGoHome, cancelGoHome, confirmGoHome }
 }

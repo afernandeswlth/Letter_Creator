@@ -39,8 +39,7 @@ INTRO_GREY = colors.HexColor('#7a8890')
 BAR_BLUE = colors.HexColor('#2157be')
 GREY_BAND = colors.HexColor('#f4f4f4')
 NAVY = colors.HexColor('#16224b')
-GRIDC = colors.HexColor('#e6e8eb')
-GRIDC_DARK = colors.HexColor('#c3c7cd')  # more visible grid (security table)
+GRIDC = colors.HexColor('#ECEFF0')  # gray grid lines (all tables)
 ZEBRA = colors.HexColor('#e9ecee')  # alternating row shade
 
 BRANDS = {
@@ -52,8 +51,9 @@ BRANDS = {
         'band': colors.HexColor('#f4f4f4'), 'title': colors.HexColor('#2157be'),
         'bar': colors.HexColor('#2157be'), 'accent': '#2157be',
         'footer_band': colors.HexColor('#16224b'),
-        # layout (measured from the WLTH example)
-        'tsize': 9, 'pcols': [150, 135, 149, 134], 'acols': [116, 452], 'disc_gap': 21,
+        # layout (measured from the correct WLTH example)
+        'tsize': 9, 'pcols': [90, 149, 145, 184], 'acols': [116, 452], 'disc_gap': 21,
+        'prow': 21.0,  # fixed product-table data-row height (matches the example)
         'cond_ind': (7, 21),  # (number indent, text/hanging indent) within the cell
     },
     'mma': {
@@ -65,7 +65,7 @@ BRANDS = {
         'bar': colors.black, 'accent': '#1f232d',
         'footer_band': colors.HexColor('#1f232d'),
         # layout (measured from the MMA example)
-        'tsize': 7.9, 'pcols': [90, 149, 145, 184], 'acols': [119, 449], 'disc_gap': 39,
+        'tsize': 7.9, 'pcols': [90, 149, 145, 184], 'acols': [119, 449], 'disc_gap': 20,
         'cond_ind': (15, 33),
     },
 }
@@ -143,8 +143,9 @@ def _build_pdf(brand_id, v, gap_scale=1.0, shrink=False):
     intro = ParagraphStyle('i', parent=body, fontSize=14, leading=19.8, textColor=INTRO_GREY)
     head = ParagraphStyle('h', parent=body, fontSize=10, leading=13)
     tsize = brand.get('tsize', 9)
-    lbl = ParagraphStyle('l', parent=body, fontSize=tsize)
-    val = ParagraphStyle('v', parent=body, fontSize=tsize)
+    lead = tsize + 0.6  # tight leading so a wrapped 2-line cell fits a fixed row
+    lbl = ParagraphStyle('l', parent=body, fontSize=tsize, leading=lead)
+    val = ParagraphStyle('v', parent=body, fontSize=tsize, leading=lead)
     bar = ParagraphStyle('bar', parent=body, fontSize=tsize, textColor=colors.white)
     note = ParagraphStyle('n', parent=body, leading=11)
     disc = ParagraphStyle('dc', parent=body, leading=11, spaceAfter=11)
@@ -207,7 +208,7 @@ def _build_pdf(brand_id, v, gap_scale=1.0, shrink=False):
         ov_rows.append([L('Guarantor(s):'), V(g('guarantors'))])
     ov = Table(ov_rows, colWidths=brand['acols'])
     ov.setStyle(grid_style())
-    flow += [ov, G(24)]
+    flow += [ov, G(26)]
 
     rows = [
         [Paragraph('Product Details', bar), '', '', ''],
@@ -219,8 +220,15 @@ def _build_pdf(brand_id, v, gap_scale=1.0, shrink=False):
         [L('Annual Facility Fee'), V(g('annualFacilityFee', '$395.00')), L('Monthly Fees'), V(g('monthlyFees', '$0.00'))],
         [L('Offset Account'), V(g('offsetAccount', 'Yes')), L('Redraw Facility'), V(g('redrawFacility', 'N/A'))],
     ]
-    product = Table(rows, colWidths=brand['pcols'])
-    product.setStyle(grid_style(bar_row=True))
+    # Fixed, uniform data-row heights so the table overlays the example exactly
+    # (Helvetica wraps a long product name where Calibri wouldn't; tight leading +
+    # minimal padding lets a wrapped 2-line cell still fit one uniform row).
+    prow = brand.get('prow', 20.7)
+    psty = grid_style(bar_row=True)
+    psty.add('TOPPADDING', (0, 1), (-1, -1), 0.5)
+    psty.add('BOTTOMPADDING', (0, 1), (-1, -1), 0.5)
+    product = Table(rows, colWidths=brand['pcols'], rowHeights=[None] + [prow] * (len(rows) - 1))
+    product.setStyle(psty)
     flow += [product, G(10)]
 
     flow.append(Paragraph(NOTE, note))
@@ -239,7 +247,7 @@ def _build_pdf(brand_id, v, gap_scale=1.0, shrink=False):
         [L('Our Panel Solicitor:'), V(g('panelSolicitor', 'Green Mortgage Lawyers'))],
         [L('Special Conditions:'), cond_cell],
     ], colWidths=brand['acols'])
-    sty = grid_style(grid_color=GRIDC_DARK)
+    sty = grid_style()
     sty.add('VALIGN', (1, 2), (1, 2), 'TOP')
     sec.setStyle(sty)
     flow += [sec, G(brand.get('disc_gap', 21))]
