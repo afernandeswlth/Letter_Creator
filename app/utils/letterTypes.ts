@@ -31,7 +31,7 @@ export const LETTER_TYPES: Record<LetterTypeId, LetterType> = {
     label: 'Formal Approval Letter',
     description: 'Generate a formal approval letter for approved applications.',
     icon: 'M9 12l2 2 4-4m1 8H8a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 01-2 2z',
-    status: 'disabled', // live: disabled while under development (enabled on the formal-approval branch)
+    status: 'available',
     inputModel: 'form',
     engine: 'approval',
     fields: [
