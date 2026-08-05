@@ -96,7 +96,7 @@ export function welcomeEmail(input: EmailInput): { subject: string; html: string
   return { subject, html }
 }
 
-const FORM_LABELS: Record<string, string> = { approval: 'Formal Approval' }
+const FORM_LABELS: Record<string, string> = { approval: 'Formal Approval', commencement: 'Commencement' }
 
 /** Subject + HTML body for a form-driven letter (e.g. Formal Approval). */
 export function formEmail(
@@ -106,18 +106,43 @@ export function formEmail(
 ): { subject: string; html: string } {
   const brand = BRANDS[brandId] ?? BRANDS.wlth
   const label = FORM_LABELS[letterType] ?? 'Letter'
-  const who = values.borrowers || values.recipientName || ''
+  // For a commencement letter the "borrower" in the subject is the customer(s),
+  // not the builder (the builder is only greeted in the body).
+  const who = letterType === 'commencement'
+    ? (values.customerNames || '')
+    : (values.borrowers || values.recipientName || '')
   const first = stripTitle(who).split(/\s+/)[0] || 'there'
-  const acct = values.loanAccountNumber || ''
+  const acct = values.loanAccountNumber || values.applicationNumber || ''
   let subject = `${brand.label} ${label} Letter`
   if (who) subject += `: ${stripTitle(who)}`
   if (acct) subject += ` - ${acct}`
 
-  const body = `
+  let body: string
+  if (letterType === 'commencement') {
+    const builder = (values.builderName || '').trim() || 'there'
+    body = `
+    <p>Hi ${builder},</p>
+    <p>Welcome to the ${brand.label} Construction Journey!</p>
+    <p>We want to let you know that we can start releasing progress payments for our mutual customers.
+       You can find the Commencement Letter for the above clients attached to this email for your
+       attention and action. This means you can now commence the construction or renovations.</p>
+    <p>Also attached are our Progress Payment Guidelines, which outline the requirements for a drawdown
+       request. All invoices must be signed by all borrowers; digital signatures are accepted. Kindly
+       send all construction drawdown requests and supporting documents to
+       <a href="mailto:construction@wlth.com">construction@wlth.com</a></p>
+    <p>Please note, we require a progress valuation at every stage of the construction. These reports
+       can take up to 5 business days to be compiled by the valuation firm. We encourage you to take
+       this into consideration when submitting a request.</p>
+    <p>Once we have all the supporting documents, payment is usually posted within 2-3 business days.</p>
+    <p>If you have any questions or concerns along the way, please do not hesitate to reach out.</p>
+    <p>Kind regards,<br/>${brand.label}</p>`
+  } else {
+    body = `
     <p>Hi ${first},</p>
     <p>Please find attached your ${brand.label} ${label} letter.</p>
     <p>If you have any questions, please reach out to us ${brand.contactShort}</p>
     <p>Warm regards,<br/>${brand.team}</p>`
+  }
   const signature = SIGNATURE_HTML ? `<br/><br/>${SIGNATURE_HTML}` : ''
   const html = `<div style="font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #1e2430; line-height: 1.5;">${body}${signature}</div>`.trim()
   return { subject, html }

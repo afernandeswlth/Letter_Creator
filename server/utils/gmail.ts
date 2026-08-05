@@ -55,9 +55,11 @@ function encodeSubject(subject: string): string {
 
 export interface DraftInput {
   to: string
+  cc?: string // comma-separated CC recipients
   subject: string
   html: string
   attachments: Array<{ filename: string; content: Buffer }>
+  sender?: string // mailbox to draft from/as (defaults to GMAIL_SENDER)
 }
 
 export interface DraftResult {
@@ -68,7 +70,7 @@ export interface DraftResult {
 /** Create a Gmail draft (with the PDF attached) in the GMAIL_SENDER mailbox. */
 export async function createGmailDraft(input: DraftInput): Promise<DraftResult> {
   const creds = loadCredentials()
-  const sender = process.env.GMAIL_SENDER
+  const sender = input.sender || process.env.GMAIL_SENDER
   if (!creds || !sender) {
     throw new Error('Gmail is not configured (set the service-account key and GMAIL_SENDER).')
   }
@@ -77,13 +79,14 @@ export async function createGmailDraft(input: DraftInput): Promise<DraftResult> 
     email: creds.client_email,
     key: creds.private_key,
     scopes: SCOPES,
-    subject: sender, // impersonate the shared mailbox
+    subject: sender, // impersonate the shared mailbox (e.g. construction@wlth.com)
   })
   const gmail = google.gmail({ version: 'v1', auth })
 
   const boundary = 'wlg_' + b64url(String(input.to)).slice(0, 16)
   const parts = [
     `To: ${input.to}`,
+    ...(input.cc ? [`Cc: ${input.cc}`] : []),
     `From: ${sender}`,
     `Subject: ${encodeSubject(input.subject)}`,
     'MIME-Version: 1.0',

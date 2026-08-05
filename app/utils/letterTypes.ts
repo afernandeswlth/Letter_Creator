@@ -72,6 +72,11 @@ export const LETTER_TYPES: Record<LetterTypeId, LetterType> = {
     inputModel: 'form',
     engine: 'commencement',
     source: 'manual',
+    email: {
+      from: 'construction@wlth.com',
+      toLabel: 'Builder email',
+      ccLabels: ['Broker email', 'Borrower email(s)'],
+    },
     fields: [
       // Builder (name/address block + salutation)
       { id: 'builderName', label: 'Builder Name', type: 'text', required: true, placeholder: 'United Homes Qld Pty Ltd', section: 'Builder' },

@@ -237,17 +237,16 @@ export function useLetterApi() {
     values: Record<string, string>,
     to: string,
     filename: string,
+    cc?: string,
   ): Promise<DeliveryResult> {
-    const res = await $fetch<{ link: string; to: string; via: string }>('/api/forms/email', {
+    const res = await $fetch<{ link: string; to: string; cc?: string; from?: string; via: string }>('/api/forms/email', {
       method: 'POST',
-      body: { letterType, brand: engineBrand(brand), values, to, filename },
+      body: { letterType, brand: engineBrand(brand), values, to, cc, filename },
     })
+    const where = res.from ? `${res.from} Drafts` : 'Drafts'
     return {
       ok: true,
-      message:
-        res.via === 'zapier'
-          ? `Sent to Zapier for ${res.to} — check hello@wlth.com Drafts.`
-          : `Draft created for ${res.to}.`,
+      message: `Draft created in ${where} — To ${res.to}${res.cc ? `, Cc ${res.cc}` : ''}. Review and send from Gmail.`,
       link: res.link,
     }
   }

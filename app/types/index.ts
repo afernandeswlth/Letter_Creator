@@ -54,6 +54,13 @@ export interface LetterType {
   source?: 'schedule4' | 'manual'
   /** Field schema for 'form' types. */
   fields?: LetterTypeField[]
+  /** When set, the Download step also offers to create an email draft (with the
+   *  letter attached). The draft is created from `from` (server-enforced). */
+  email?: {
+    from?: string // mailbox the draft is created from, e.g. 'construction@wlth.com'
+    toLabel: string // label for the primary recipient input
+    ccLabels?: string[] // labels for the CC recipient inputs (broker, borrowers…)
+  }
 }
 
 export interface Brand {

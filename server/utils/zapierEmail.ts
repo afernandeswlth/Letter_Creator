@@ -17,18 +17,24 @@ export function zapierEmailConfig() {
 
 export interface ZapierDraftInput {
   to: string
+  cc?: string // comma-separated CC recipients
   subject: string
   html: string
   attachments: Array<{ filename: string; content: Buffer }>
+  sender?: string // mailbox to draft from (e.g. construction@wlth.com)
 }
 
-/** POST the draft details + attachment(s) to the Zapier webhook. */
-export async function createDraftViaZapier(input: ZapierDraftInput): Promise<void> {
-  const url = process.env.ZAPIER_EMAIL_WEBHOOK_URL
+/** POST the draft details + attachment(s) to a Zapier webhook. Pass `webhookUrl`
+ *  to target a specific Zap (e.g. the construction@wlth.com one); defaults to the
+ *  shared ZAPIER_EMAIL_WEBHOOK_URL. */
+export async function createDraftViaZapier(input: ZapierDraftInput, webhookUrl?: string): Promise<void> {
+  const url = webhookUrl || process.env.ZAPIER_EMAIL_WEBHOOK_URL
   if (!url) throw new Error('Zapier email webhook is not configured (set ZAPIER_EMAIL_WEBHOOK_URL).')
 
   const form = new FormData()
   form.append('to', input.to)
+  if (input.cc) form.append('cc', input.cc)
+  if (input.sender) form.append('from', input.sender)
   form.append('subject', input.subject)
   form.append('body', input.html)
   form.append('filename', input.attachments[0]?.filename ?? 'Welcome Letter.pdf')
