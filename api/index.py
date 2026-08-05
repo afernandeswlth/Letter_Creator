@@ -265,6 +265,7 @@ def form_email():
     to = (data.get('to') or '').strip()
     if not to:
         return _json({'error': 'Missing recipient email address'}, 400)
+    cc = (data.get('cc') or '').strip()
     brand = data.get('brand', 'wlth')
     letter_type = data.get('letterType', '')
     values = data.get('values') or {}
@@ -276,37 +277,87 @@ def form_email():
     filename = (data.get('filename') or 'Letter').strip()
     subject, html = form_email_content(letter_type, brand, values)
 
-    webhook = os.environ.get('ZAPIER_EMAIL_WEBHOOK_URL')
+    # A letter type with a dedicated sender drafts from a separate inbox, so it
+    # uses its OWN Zap — never the shared (welcome) webhook.
+    form_senders = {'commencement': 'construction@wlth.com'}
+    sender = form_senders.get(letter_type)
+    if sender:
+        webhook = os.environ.get('ZAPIER_CONSTRUCTION_WEBHOOK_URL')
+        missing = 'ZAPIER_CONSTRUCTION_WEBHOOK_URL'
+    else:
+        webhook = os.environ.get('ZAPIER_EMAIL_WEBHOOK_URL')
+        missing = 'ZAPIER_EMAIL_WEBHOOK_URL'
     if not webhook:
-        return _json({'error': 'Email is not configured. Set ZAPIER_EMAIL_WEBHOOK_URL.'}, 500)
+        return _json({'error': f'Email is not configured. Set {missing}.'}, 500)
+
+    # The letter, plus (for commencement) the brand's Progress Payment Guidelines.
+    files = [('attachment', (f'{filename}.pdf', pdf_bytes, 'application/pdf'))]
+    if letter_type == 'commencement':
+        bkey = 'mma' if brand == 'mma' else 'wlth'
+        gpath = os.path.join(ENGINE_ASSETS, bkey, 'progress-payment-guidelines.pdf')
+        if os.path.exists(gpath):
+            glabel = 'Mortgage Mart' if brand == 'mma' else 'WLTH'
+            with open(gpath, 'rb') as fh:
+                files.append(('attachment2', (f'{glabel} Progress Payment Guidelines.pdf',
+                                              fh.read(), 'application/pdf')))
+
     try:
         import requests
         d = {'to': to, 'subject': subject, 'body': html, 'filename': f'{filename}.pdf'}
-        files = {'attachment': (f'{filename}.pdf', pdf_bytes, 'application/pdf')}
+        if cc:
+            d['cc'] = cc
+        if sender:
+            d['from'] = sender
         res = requests.post(webhook, data=d, files=files, timeout=30)
         if not res.ok:
             return _json({'error': f'Zapier webhook returned {res.status_code}. {res.text[:200]}'}, 502)
     except Exception as e:  # noqa: BLE001
         return _json({'error': str(e)}, 502)
     return _json({'ok': True, 'via': 'zapier',
-                  'link': 'https://mail.google.com/mail/u/0/#drafts', 'to': to})
+                  'link': 'https://mail.google.com/mail/u/0/#drafts',
+                  'to': to, 'cc': cc or None, 'from': sender})
 
 
-_FORM_LABELS = {'approval': 'Formal Approval'}
+_FORM_LABELS = {'approval': 'Formal Approval', 'commencement': 'Commencement'}
 
 
 def form_email_content(letter_type, brand, values):
     b = _BRAND_EMAIL.get(brand, _BRAND_EMAIL['wlth'])
     label = _FORM_LABELS.get(letter_type, 'Letter')
-    who = values.get('borrowers') or values.get('recipientName') or ''
+    # For a commencement letter the subject "borrower" is the customer(s), not
+    # the builder (the builder is only greeted in the body).
+    if letter_type == 'commencement':
+        who = values.get('customerNames') or ''
+    else:
+        who = values.get('borrowers') or values.get('recipientName') or ''
     first = (_strip_title(who).split() or ['there'])[0]
-    acct = values.get('loanAccountNumber', '')
+    acct = values.get('loanAccountNumber') or values.get('applicationNumber') or ''
     subject = f"{b['label']} {label} Letter"
     if who:
         subject += f": {_strip_title(who)}"
     if acct:
         subject += f" - {acct}"
-    body = f"""
+
+    if letter_type == 'commencement':
+        builder = (values.get('builderName') or '').strip() or 'there'
+        body = f"""
+    <p>Hi {builder},</p>
+    <p>Welcome to the {b['label']} Construction Journey!</p>
+    <p>We want to let you know that we can start releasing progress payments for our mutual customers.
+       You can find the Commencement Letter for the above clients attached to this email for your
+       attention and action. This means you can now commence the construction or renovations.</p>
+    <p>Also attached are our Progress Payment Guidelines, which outline the requirements for a drawdown
+       request. All invoices must be signed by all borrowers; digital signatures are accepted. Kindly
+       send all construction drawdown requests and supporting documents to
+       <a href="mailto:construction@wlth.com">construction@wlth.com</a></p>
+    <p>Please note, we require a progress valuation at every stage of the construction. These reports
+       can take up to 5 business days to be compiled by the valuation firm. We encourage you to take
+       this into consideration when submitting a request.</p>
+    <p>Once we have all the supporting documents, payment is usually posted within 2-3 business days.</p>
+    <p>If you have any questions or concerns along the way, please do not hesitate to reach out.</p>
+    <p>Kind regards,<br/>{b['label']}</p>"""
+    else:
+        body = f"""
     <p>Hi {first},</p>
     <p>Please find attached your {b['label']} {label} letter.</p>
     <p>If you have any questions, please reach out to us {b['contact_short']}</p>
