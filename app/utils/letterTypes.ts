@@ -34,6 +34,7 @@ export const LETTER_TYPES: Record<LetterTypeId, LetterType> = {
     status: 'available',
     inputModel: 'form',
     engine: 'approval',
+    source: 'schedule4',
     fields: [
       // Applicant Overview
       { id: 'date', label: 'Letter Date', type: 'date', required: true, section: 'Applicant Overview' },
@@ -117,14 +118,22 @@ export const LETTER_TYPES: Record<LetterTypeId, LetterType> = {
     label: 'Custom Letter',
     description: 'Create a custom letter using templates or your own content.',
     icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.4-9.6a2 2 0 112.8 2.8L11.8 15.2 8 16l.8-3.8 8.8-8.8z',
-    status: 'disabled',
+    status: 'available',
     inputModel: 'form',
     engine: 'custom',
+    source: 'manual',
     fields: [
-      { id: 'recipientName', label: 'Recipient Name(s)', type: 'text', required: true, placeholder: 'Mr John Smith', section: 'Recipient' },
-      { id: 'recipientEmail', label: 'Recipient Email', type: 'email', required: false, placeholder: 'john@example.com', section: 'Recipient' },
-      { id: 'subject', label: 'Subject / Heading', type: 'text', required: true, section: 'Content' },
-      { id: 'body', label: 'Letter Body', type: 'textarea', required: true, placeholder: 'Write the letter content…', section: 'Content' },
+      // Recipient block (top of the letter)
+      { id: 'recipientName', label: 'Recipient Name', type: 'text', required: false, placeholder: 'Mr. Smith', section: 'Recipient' },
+      { id: 'recipientAddress', label: 'Recipient Address', type: 'text', required: false, placeholder: '98 Shirley Street, Pimpama, QLD 4209', help: 'We’ll split this onto two lines automatically.', section: 'Recipient' },
+      // Letter
+      { id: 'date', label: 'Date', type: 'date', required: false, section: 'Letter' },
+      { id: 'salutation', label: 'Greeting (after “Dear”)', type: 'text', required: false, placeholder: 'Mr. Smith', help: 'Leave blank to use the recipient name.', section: 'Letter' },
+      { id: 'body', label: 'Letter Body', type: 'textarea', required: true, placeholder: 'Write the letter content…\n\nLeave a blank line between paragraphs.', section: 'Letter' },
+      { id: 'signOff', label: 'Sign-off', type: 'text', required: false, default: 'Sincerely,', section: 'Letter' },
+      // Signature
+      { id: 'senderName', label: 'Your Name', type: 'text', required: false, placeholder: 'Firstname Lastname', section: 'Signature' },
+      { id: 'senderTitle', label: 'Your Job Title', type: 'text', required: false, placeholder: 'Job Title', section: 'Signature' },
     ],
   },
 }

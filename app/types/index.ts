@@ -48,6 +48,9 @@ export interface LetterType {
   inputModel: InputModel
   /** Engine identifier passed to the Python CLI (e.g. 'welcome', 'approval'). */
   engine: string
+  /** How a 'form' type is filled: from a Schedule 4 upload, or by hand.
+   *  Defaults to 'schedule4' when omitted. */
+  source?: 'schedule4' | 'manual'
   /** Field schema for 'form' types. */
   fields?: LetterTypeField[]
 }

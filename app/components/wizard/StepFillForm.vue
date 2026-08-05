@@ -10,6 +10,10 @@ const today = new Date().toLocaleDateString('en-GB') // dd/mm/yyyy
 
 const fields = computed<LetterTypeField[]>(() => currentType.value?.fields ?? [])
 
+// Some form types are filled from a Schedule 4 upload (Approval); others are
+// filled by hand (Custom). Manual-only types skip the upload UI entirely.
+const supportsSchedule4 = computed(() => currentType.value?.source !== 'manual')
+
 // Ordered, unique section names.
 const sections = computed(() => {
   const seen: string[] = []
@@ -30,7 +34,11 @@ function seedDefaults() {
     }
   }
 }
-onMounted(seedDefaults)
+onMounted(() => {
+  seedDefaults()
+  // Manual-only types (Custom) have no Schedule 4 — go straight to the fields.
+  if (!supportsSchedule4.value) state.value.formMode = 'manual'
+})
 
 const missing = (f: LetterTypeField) => f.required && !(state.value.fieldValues[f.id] ?? '').trim()
 const isValid = computed(() => fields.value.every((f) => !missing(f)))
@@ -93,7 +101,7 @@ function onNext() {
   showErrors.value = true
   // Schedule 4 flow: once an S4 is read, proceed to Preview (review there).
   // Manual flow: require all fields.
-  if (state.value.formMode === 'schedule4') {
+  if (supportsSchedule4.value && state.value.formMode === 'schedule4') {
     if (state.value.formParsed) next()
   } else if (isValid.value) {
     next()
@@ -105,7 +113,7 @@ function onNext() {
   <div class="rounded-xl border border-slate-200 bg-white p-6">
     <h2 class="text-lg font-semibold text-slate-900">Enter Details</h2>
     <p class="mt-1 text-sm text-slate-500">
-      Choose the brand, then upload the Schedule 4 to auto-fill the letter.
+      {{ supportsSchedule4 ? 'Choose the brand, then upload the Schedule 4 to auto-fill the letter.' : 'Choose the brand, then fill in the letter details.' }}
     </p>
 
     <!-- Brand -->
@@ -113,8 +121,8 @@ function onNext() {
       <BrandSelector />
     </div>
 
-    <!-- Default: Schedule 4 upload -->
-    <template v-if="state.formMode === 'schedule4'">
+    <!-- Default: Schedule 4 upload (only for Schedule-4-backed types) -->
+    <template v-if="supportsSchedule4 && state.formMode === 'schedule4'">
       <div class="mt-6">
         <p class="text-sm font-medium text-slate-700">Upload Schedule 4</p>
         <p class="mt-0.5 text-xs text-slate-400">We’ll read the loan details from the Schedule 4 and build the letter.</p>
@@ -222,13 +230,13 @@ function onNext() {
           </div>
         </div>
       </div>
-      <button type="button" class="mt-6 text-sm font-medium text-blue-600 hover:text-blue-700" @click="setMode('schedule4')">
+      <button v-if="supportsSchedule4" type="button" class="mt-6 text-sm font-medium text-blue-600 hover:text-blue-700" @click="setMode('schedule4')">
         ← Use Schedule 4 upload instead
       </button>
     </template>
 
     <!-- Validation hint for Schedule 4 mode (fields are hidden) -->
-    <p v-if="showErrors && !state.formParsed && state.formMode === 'schedule4'" class="mt-4 text-sm text-red-600">
+    <p v-if="showErrors && supportsSchedule4 && !state.formParsed && state.formMode === 'schedule4'" class="mt-4 text-sm text-red-600">
       Please upload a Schedule 4 before continuing.
     </p>
 
