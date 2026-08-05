@@ -91,14 +91,14 @@ def _draw_logo(canvas, path, x, y, w, h):
         canvas.drawImage(path, x, y, width=w, height=h, mask='auto')
 
 
-def _page(canvas, doc, brand):
+def _page(canvas, doc, brand, title='Formal Approval'):
     canvas.saveState()
     # header band (full width) + title + brand mark (bleeds top-right)
     canvas.setFillColor(brand['band'])
     canvas.rect(0, PAGE_H - 47, PAGE_W, 47, stroke=0, fill=1)
     canvas.setFillColor(brand['title'])
     canvas.setFont(BOLD, 15)
-    canvas.drawString(LM, PAGE_H - 31.5, 'Formal Approval')
+    canvas.drawString(LM, PAGE_H - 31.5, title)
     _draw_logo(canvas, brand['header'], PAGE_W - 82.2, PAGE_H - 47.2, 82.2, 46.5)
     # footer band (content width, not full-bleed) + sign-off + brand mark
     canvas.setFillColor(brand['footer_band'])

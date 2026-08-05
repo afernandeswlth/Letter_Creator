@@ -78,10 +78,12 @@ def build_form_pdf(letter_type, brand, values):
     import approval_letter
     import custom_letter
     import commencement_letter
+    import preapproval_letter
     renderers = {
         'approval': approval_letter.build_approval_pdf,
         'custom': custom_letter.build_custom_pdf,
         'commencement': commencement_letter.build_commencement_pdf,
+        'pre-approval': preapproval_letter.build_preapproval_pdf,
     }
     fn = renderers.get(letter_type)
     if fn is None:

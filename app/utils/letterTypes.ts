@@ -96,14 +96,27 @@ export const LETTER_TYPES: Record<LetterTypeId, LetterType> = {
     label: 'Pre-Approval Letter',
     description: 'Create pre-approval letters for eligible customers.',
     icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM6 21a6 6 0 0112 0',
-    status: 'disabled',
+    status: 'available',
     inputModel: 'form',
     engine: 'pre-approval',
+    source: 'manual',
     fields: [
-      { id: 'borrowerName', label: 'Borrower Name(s)', type: 'text', required: true, placeholder: 'Mr John Smith', section: 'Borrower' },
-      { id: 'borrowerEmail', label: 'Borrower Email', type: 'email', required: false, placeholder: 'john@example.com', section: 'Borrower' },
-      { id: 'preApprovedAmount', label: 'Pre-Approved Amount', type: 'currency', required: true, placeholder: '$500,000.00', section: 'Loan' },
-      { id: 'expiryDate', label: 'Pre-Approval Expiry Date', type: 'date', required: true, section: 'Loan' },
+      // Applicant Overview
+      { id: 'date', label: 'Letter Date', type: 'date', required: false, section: 'Applicant Overview' },
+      { id: 'borrowers', label: 'Borrower(s)', type: 'text', required: true, placeholder: 'Mr John Smith & Mrs Jane Smith', section: 'Applicant Overview' },
+      { id: 'mortgagors', label: 'Mortgagor(s)', type: 'text', required: false, placeholder: 'Same as borrower(s), or an entity name', section: 'Applicant Overview' },
+      { id: 'guarantors', label: 'Guarantor(s)', type: 'text', required: false, placeholder: 'Leave blank if none', section: 'Applicant Overview' },
+      // Product Details
+      { id: 'productName', label: 'Product Name', type: 'text', required: false, placeholder: 'Ocean (WLTH) / Ultra (MMA)', help: 'Leave blank to use the brand default.', section: 'Product Details' },
+      { id: 'applicationNumber', label: 'Application Reference No.', type: 'text', required: false, placeholder: 'APP-791033', section: 'Product Details' },
+      { id: 'loanAmount', label: 'Loan Amount', type: 'currency', required: false, placeholder: '$750,000.00', section: 'Product Details' },
+      { id: 'loanTerm', label: 'Loan Term', type: 'text', required: false, placeholder: '30 Years', section: 'Product Details' },
+      { id: 'interestRate', label: 'Interest Rate', type: 'text', required: false, placeholder: '6.24%', section: 'Product Details' },
+      { id: 'rateType', label: 'Rate Type', type: 'select', required: false, default: 'Variable', options: [{ value: 'Variable', label: 'Variable' }, { value: 'Fixed', label: 'Fixed' }], section: 'Product Details' },
+      { id: 'repaymentType', label: 'Repayment Type', type: 'select', required: false, default: 'P&I', options: [{ value: 'P&I', label: 'Principal & Interest' }, { value: 'Interest Only', label: 'Interest Only' }], section: 'Product Details' },
+      { id: 'ioYears', label: 'Interest Only Period (Years)', type: 'text', required: false, placeholder: '5', help: 'Only used when Repayment Type is Interest Only — shows as “Interest Only – 5 Years”.', section: 'Product Details' },
+      // Security
+      { id: 'securityProperty', label: 'Security Property', type: 'text', required: false, default: 'To be advised', section: 'Security' },
     ],
   },
 
