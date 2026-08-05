@@ -16,6 +16,7 @@ export type BrandId = 'mortgage-mart' | 'wlth'
 export type LetterTypeId =
   | 'welcome'
   | 'approval'
+  | 'commencement'
   | 'pre-approval'
   | 'conditional-approval'
   | 'discharge'

@@ -63,6 +63,29 @@ export const LETTER_TYPES: Record<LetterTypeId, LetterType> = {
     ],
   },
 
+  commencement: {
+    id: 'commencement',
+    label: 'Commencement Letter',
+    description: 'Notify a builder that progress payments can commence for a construction loan.',
+    icon: 'M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01',
+    status: 'available',
+    inputModel: 'form',
+    engine: 'commencement',
+    source: 'manual',
+    fields: [
+      // Builder (name/address block + salutation)
+      { id: 'builderName', label: 'Builder Name', type: 'text', required: true, placeholder: 'United Homes Qld Pty Ltd', section: 'Builder' },
+      { id: 'builderAddress', label: 'Builder Address', type: 'text', required: false, placeholder: '8 Honeysuckle Crescent, Bridgeman Downs', help: 'We’ll split this onto two lines automatically.', section: 'Builder' },
+      { id: 'builderAbn', label: 'Builder ABN', type: 'text', required: false, placeholder: 'ABN: 75634805208', section: 'Builder' },
+      { id: 'date', label: 'Date', type: 'date', required: false, section: 'Builder' },
+      // What you need to know (the table)
+      { id: 'customerNames', label: 'Customer Name(s)', type: 'text', required: false, placeholder: 'Tristan & Penelope Waller', section: 'Progress Payment Details' },
+      { id: 'applicationNumber', label: 'Application Number', type: 'text', required: false, placeholder: '400178868', section: 'Progress Payment Details' },
+      { id: 'disbursementTotal', label: 'Disbursement Total', type: 'currency', required: false, placeholder: '$540,000.00', section: 'Progress Payment Details' },
+      { id: 'constructionAddress', label: 'Construction Address', type: 'text', required: false, placeholder: '60 Ryder Street, Wynnum, Queensland, 4178', section: 'Progress Payment Details' },
+    ],
+  },
+
   'pre-approval': {
     id: 'pre-approval',
     label: 'Pre-Approval Letter',
