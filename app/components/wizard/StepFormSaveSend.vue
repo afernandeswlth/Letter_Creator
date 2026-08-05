@@ -35,7 +35,14 @@ async function onCreateDraft() {
   emailResult.value = ''
   emailError.value = ''
   try {
-    const cc = ccEmails.value.map((e) => e.trim()).filter(isEmail).join(', ')
+    // Each Cc field may hold several addresses (e.g. both borrowers), so split
+    // on commas/semicolons before validating — otherwise a multi-address field
+    // fails the single-email check and gets dropped.
+    const cc = ccEmails.value
+      .flatMap((e) => e.split(/[,;]/))
+      .map((e) => e.trim())
+      .filter(isEmail)
+      .join(', ')
     const res = await createFormEmailDraft(
       currentType.value.engine,
       state.value.brand,
