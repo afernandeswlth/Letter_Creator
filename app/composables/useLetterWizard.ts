@@ -1,5 +1,6 @@
 import { BRANDS } from '~/utils/brands'
 import { getLetterType } from '~/utils/letterTypes'
+import { THEME_CLASSES, themeName } from '~/utils/theme'
 import type { BrandId, EngineResult, FieldValues, LetterTypeId, Party } from '~/types'
 
 export interface WizardState {
@@ -12,7 +13,8 @@ export interface WizardState {
   ddBsb: string // the single manual input…
   ddAccount: string // …applied to every party's letter
   noDirectDebit: boolean // no direct debit set up → omit the DD table
-  offsetLinked: 'yes' | 'no' | null // mandatory — changes the email template
+  hasOffset: 'yes' | 'no' | null // does the loan have an offset account?
+  offsetLinked: 'yes' | 'no' | null // (when hasOffset) is it linked — changes the email template
   // 'form' letter types (e.g. Approval, Discharge):
   fieldValues: FieldValues // keyed by LetterTypeField.id
   formMode: 'manual' | 'schedule4' // fill the form by hand, or auto-fill from an upload
@@ -31,6 +33,7 @@ function initialState(): WizardState {
     ddBsb: '',
     ddAccount: '',
     noDirectDebit: false,
+    hasOffset: null,
     offsetLinked: null,
     fieldValues: {},
     formMode: 'schedule4',
@@ -64,6 +67,8 @@ export function useLetterWizard() {
   const state = useState<WizardState>('letter-wizard', initialState)
   const currentBrand = computed(() => BRANDS[state.value.brand])
   const currentType = computed(() => getLetterType(state.value.letterType))
+  const theme = computed(() => themeName(state.value.letterType))
+  const themeClasses = computed(() => THEME_CLASSES[theme.value])
   const steps = computed(() =>
     currentType.value?.inputModel === 'form' ? FORM_STEPS : UPLOAD_STEPS,
   )
@@ -122,5 +127,5 @@ export function useLetterWizard() {
     state.value.brand = brand
   }
 
-  return { state, currentBrand, currentType, steps, formFilename, reset, resetForm, chooseType, goTo, next, back, setBrand, confirmingHome, requestGoHome, cancelGoHome, confirmGoHome }
+  return { state, currentBrand, currentType, theme, themeClasses, steps, formFilename, reset, resetForm, chooseType, goTo, next, back, setBrand, confirmingHome, requestGoHome, cancelGoHome, confirmGoHome }
 }

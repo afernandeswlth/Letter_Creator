@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { state, currentType, formFilename, back, requestGoHome } = useLetterWizard()
+const { state, currentType, formFilename, back, requestGoHome, themeClasses } = useLetterWizard()
 const { downloadFormPdf, createFormEmailDraft } = useLetterApi()
 
 const downloading = ref(false)
@@ -115,7 +115,8 @@ async function onCreateDraft() {
       <div class="mt-4 flex items-center gap-3">
         <button
           type="button"
-          class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-40"
+          class="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-40"
+          :class="themeClasses.btn"
           :disabled="!canSend || sending"
           @click="onCreateDraft"
         >
@@ -134,7 +135,8 @@ async function onCreateDraft() {
       <button type="button" class="rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50" @click="back">Back</button>
       <button
         type="button"
-        class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+        class="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white transition"
+        :class="themeClasses.btn"
         @click="requestGoHome"
       >
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7" /></svg>

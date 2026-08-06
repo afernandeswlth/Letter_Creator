@@ -6,10 +6,17 @@ const busy = ref(false)
 const showErrors = ref(false)
 const error = ref('')
 
-const offsetOptions = [
-  { value: 'yes' as const, label: 'Yes / No Offset Account' },
+const yesNo = [
+  { value: 'yes' as const, label: 'Yes' },
   { value: 'no' as const, label: 'No' },
 ]
+
+// Picking "no offset account" implies the account isn't linked (drives the
+// email template); picking "yes" makes the borrower answer the linked question.
+function setHasOffset(v: 'yes' | 'no') {
+  state.value.hasOffset = v
+  state.value.offsetLinked = v === 'no' ? 'no' : null
+}
 
 const bsbOk = computed(
   () => state.value.noDirectDebit || /^\d{3}-?\d{3}$/.test(state.value.ddBsb.trim()),
@@ -17,7 +24,9 @@ const bsbOk = computed(
 const accountOk = computed(
   () => state.value.noDirectDebit || state.value.ddAccount.trim().length >= 5,
 )
-const offsetOk = computed(() => state.value.offsetLinked !== null)
+const offsetOk = computed(
+  () => state.value.hasOffset === 'no' || (state.value.hasOffset === 'yes' && state.value.offsetLinked !== null),
+)
 const isValid = computed(() => bsbOk.value && accountOk.value && offsetOk.value)
 
 // "No Direct Debit" clears the fields so the letter omits the DD table.
@@ -115,29 +124,54 @@ async function onNext() {
       </div>
     </div>
 
-    <!-- Offset question (mandatory — drives the email template) -->
+    <!-- Offset account (mandatory — drives the email template) -->
     <div class="mt-6">
       <p class="text-sm font-medium text-slate-700">
-        Account linked to Offset? <span class="text-red-500">*</span>
+        Offset Account? <span class="text-red-500">*</span>
       </p>
-      <p class="mt-0.5 text-xs text-slate-400">Determines which email template the borrower receives.</p>
+      <p class="mt-0.5 text-xs text-slate-400">Does this loan have an offset account?</p>
       <div class="mt-2 flex gap-3">
         <button
-          v-for="opt in offsetOptions"
+          v-for="opt in yesNo"
           :key="opt.value"
           type="button"
           class="rounded-lg border px-6 py-2 text-sm font-medium transition"
           :class="
-            state.offsetLinked === opt.value
+            state.hasOffset === opt.value
               ? 'border-blue-600 bg-blue-50 text-blue-700 ring-1 ring-blue-600'
               : 'border-slate-300 text-slate-700 hover:border-slate-400'
           "
-          @click="state.offsetLinked = opt.value"
+          @click="setHasOffset(opt.value)"
         >
           {{ opt.label }}
         </button>
       </div>
-      <p v-if="showErrors && !offsetOk" class="mt-1 text-xs text-red-600">Please select Yes or No.</p>
+
+      <!-- Follow-up: only when there IS an offset account -->
+      <div v-if="state.hasOffset === 'yes'" class="mt-4">
+        <p class="text-sm font-medium text-slate-700">
+          Account linked to Offset? <span class="text-red-500">*</span>
+        </p>
+        <p class="mt-0.5 text-xs text-slate-400">Determines which email template the borrower receives.</p>
+        <div class="mt-2 flex gap-3">
+          <button
+            v-for="opt in yesNo"
+            :key="opt.value"
+            type="button"
+            class="rounded-lg border px-6 py-2 text-sm font-medium transition"
+            :class="
+              state.offsetLinked === opt.value
+                ? 'border-blue-600 bg-blue-50 text-blue-700 ring-1 ring-blue-600'
+                : 'border-slate-300 text-slate-700 hover:border-slate-400'
+            "
+            @click="state.offsetLinked = opt.value"
+          >
+            {{ opt.label }}
+          </button>
+        </div>
+      </div>
+
+      <p v-if="showErrors && !offsetOk" class="mt-1 text-xs text-red-600">Please answer the offset question.</p>
     </div>
 
     <p v-if="error" class="mt-4 text-sm text-red-600">{{ error }}</p>

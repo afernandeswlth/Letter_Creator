@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { LetterTypeField } from '~/types'
 
-const { state, currentType, back, next } = useLetterWizard()
+const { state, currentType, back, next, themeClasses } = useLetterWizard()
 const { formPreview } = useLetterApi()
 
 const pages = ref<string[]>([])
@@ -167,7 +167,8 @@ async function applyChanges() {
       <div v-if="dirty" class="mt-5 flex items-center gap-3">
         <button
           type="button"
-          class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-40"
+          class="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-40"
+          :class="themeClasses.btn"
           :disabled="loading"
           @click="applyChanges"
         >
@@ -190,7 +191,7 @@ async function applyChanges() {
 
     <div class="mt-8 flex items-center justify-between">
       <button type="button" class="rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50" @click="back">Back</button>
-      <button type="button" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700" @click="next">Next: Download</button>
+      <button type="button" class="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white transition" :class="themeClasses.btn" @click="next">Next: Download</button>
     </div>
   </div>
 </template>

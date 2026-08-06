@@ -6,12 +6,12 @@ interface NavItem {
   disabled?: boolean
 }
 
-// Simple inline icon paths (Heroicons-style, 24x24 outline).
+// WLTH (lucide) icon names — see WIcon.vue.
 const nav: NavItem[] = [
-  { label: 'Dashboard', to: '/', icon: 'M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10' },
-  { label: 'All Letters', to: '/letters', disabled: true, icon: 'M4 4h12l4 4v12a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1zM9 9h6M9 13h6M9 17h4' },
-  { label: 'Templates', to: '/templates', disabled: true, icon: 'M4 4h12l4 4v12a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1zM9 9h6M9 13h6M9 17h4' },
-  { label: 'Settings', to: '/settings', disabled: true, icon: 'M10.3 3.2a1 1 0 011.4 0l.9.9a1 1 0 00.9.3l1.2-.2a1 1 0 011.1.8l.3 1.2a1 1 0 00.6.7l1.1.5a1 1 0 01.6 1.3l-.5 1.1a1 1 0 000 .9l.5 1.1a1 1 0 01-.6 1.3l-1.1.5a1 1 0 00-.6.7l-.3 1.2a1 1 0 01-1.1.8l-1.2-.2a1 1 0 00-.9.3l-.9.9a1 1 0 01-1.4 0l-.9-.9a1 1 0 00-.9-.3l-1.2.2a1 1 0 01-1.1-.8l-.3-1.2a1 1 0 00-.6-.7l-1.1-.5a1 1 0 01-.6-1.3l.5-1.1a1 1 0 000-.9l-.5-1.1a1 1 0 01.6-1.3l1.1-.5a1 1 0 00.6-.7l.3-1.2a1 1 0 011.1-.8l1.2.2a1 1 0 00.9-.3zM12 15a3 3 0 100-6 3 3 0 000 6z' },
+  { label: 'Dashboard', to: '/', icon: 'house' },
+  { label: 'All Letters', to: '/letters', disabled: true, icon: 'file-text' },
+  { label: 'Templates', to: '/templates', disabled: true, icon: 'file-text' },
+  { label: 'Settings', to: '/settings', disabled: true, icon: 'settings' },
 ]
 
 // Shared so it persists across page navigation.
@@ -32,9 +32,7 @@ const collapsed = useState('sidebar-collapsed', () => false)
     <div class="mt-4 flex items-center" :class="collapsed ? 'justify-center' : 'justify-between px-2'">
       <div v-if="!collapsed" class="flex items-center gap-2">
         <span class="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-blue-600 text-white">
-          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 4h12l4 4v12a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1zM9 9h4M9 13h6M9 17h6" />
-          </svg>
+          <WIcon name="file-text" class="h-4 w-4" />
         </span>
         <div class="leading-tight">
           <p class="text-sm font-bold text-slate-900">Letter</p>
@@ -47,12 +45,7 @@ const collapsed = useState('sidebar-collapsed', () => false)
         :title="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
         @click="collapsed = !collapsed"
       >
-        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="4" width="18" height="16" rx="2" />
-          <path d="M9 4v16" />
-          <path v-if="collapsed" d="M13 9l3 3-3 3" />
-          <path v-else d="M16 9l-3 3 3 3" />
-        </svg>
+        <WIcon name="panel-left" class="h-5 w-5" />
       </button>
     </div>
 
@@ -72,17 +65,7 @@ const collapsed = useState('sidebar-collapsed', () => false)
         :aria-disabled="item.disabled || undefined"
         active-class="!bg-blue-50 !text-blue-700"
       >
-        <svg
-          class="h-5 w-5 flex-none"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.7"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path :d="item.icon" />
-        </svg>
+        <WIcon :name="item.icon" class="h-5 w-5 flex-none" />
         <span v-if="!collapsed">{{ item.label }}</span>
       </NuxtLink>
     </nav>
@@ -98,9 +81,7 @@ const collapsed = useState('sidebar-collapsed', () => false)
         <p class="truncate text-sm font-medium text-slate-900">Admin User</p>
         <p class="truncate text-xs text-slate-400">admin@company.com</p>
       </div>
-      <svg v-if="!collapsed" class="h-4 w-4 flex-none text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M6 9l6 6 6-6" />
-      </svg>
+      <WIcon v-if="!collapsed" name="chevron-down" class="h-4 w-4 flex-none text-slate-400" />
     </div>
   </aside>
 </template>

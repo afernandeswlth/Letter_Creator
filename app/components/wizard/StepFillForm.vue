@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { LetterTypeField } from '~/types'
 
-const { state, currentType, next } = useLetterWizard()
+const { state, currentType, next, themeClasses } = useLetterWizard()
 const { parseFormSource } = useLetterApi()
 
 const showErrors = ref(false)
@@ -248,7 +248,8 @@ function onNext() {
     <div class="mt-8 flex items-center justify-end">
       <button
         type="button"
-        class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+        class="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white transition"
+        :class="themeClasses.btn"
         @click="onNext"
       >
         Next: Preview

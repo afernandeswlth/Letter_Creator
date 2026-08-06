@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { state, currentType, goTo, reset, resetForm, confirmingHome, requestGoHome, cancelGoHome, confirmGoHome } = useLetterWizard()
+const { state, currentType, themeClasses, goTo, reset, resetForm, confirmingHome, requestGoHome, cancelGoHome, confirmGoHome } = useLetterWizard()
 
 // The dashboard shows until a letter type is chosen. An 'available' type runs
 // its wizard — 'upload' types (Welcome) use the funder-doc flow, 'form' types
@@ -28,7 +28,7 @@ const showReset = computed(() => isAvailable.value)
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
-        <h1 class="text-2xl font-bold text-slate-900">{{ currentType?.label }}</h1>
+        <h1 class="text-2xl font-bold" :class="themeClasses.title">{{ currentType?.label }}</h1>
       </div>
       <button
         v-if="showReset"
@@ -86,7 +86,8 @@ const showReset = computed(() => isAvailable.value)
           </button>
           <button
             type="button"
-            class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+            class="rounded-lg px-4 py-2 text-sm font-semibold text-white transition"
+            :class="themeClasses.btn"
             @click="confirmGoHome"
           >
             Go to home

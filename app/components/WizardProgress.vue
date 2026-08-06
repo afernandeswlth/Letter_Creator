@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { steps } = useLetterWizard()
+const { steps, themeClasses } = useLetterWizard()
 
 const props = defineProps<{ current: number }>()
 const emit = defineEmits<{ (e: 'select', step: number): void }>()
@@ -25,11 +25,9 @@ function stateOf(id: number): 'done' | 'active' | 'todo' {
       >
         <span
           class="flex h-8 w-8 flex-none items-center justify-center rounded-full text-sm font-semibold transition"
-          :class="{
-            'bg-blue-600 text-white': stateOf(step.id) === 'active',
-            'bg-blue-100 text-blue-700': stateOf(step.id) === 'done',
-            'bg-slate-100 text-slate-400': stateOf(step.id) === 'todo',
-          }"
+          :class="stateOf(step.id) === 'active' ? themeClasses.stepActive
+            : stateOf(step.id) === 'done' ? themeClasses.stepDone
+            : 'bg-slate-100 text-slate-400'"
         >
           <svg
             v-if="stateOf(step.id) === 'done'"
