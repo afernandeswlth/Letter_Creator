@@ -2,16 +2,17 @@ import type { LetterTypeId } from '~/types'
 
 export type ThemeName = 'blue' | 'green' | 'purple'
 
-// Each letter type belongs to a team, which sets its colour scheme (matching the
-// dashboard groups): Credit Team = blue, Customer Service = green, All Teams = purple.
+// The dashboard groups letters by team colour, but every letter's *form* pages
+// use a single blue scheme (as before). Map all types to blue here; change an
+// entry to 'green'/'purple' to theme that letter's form pages by team instead.
 export const THEME_OF: Record<LetterTypeId, ThemeName> = {
   'pre-approval': 'blue',
   'conditional-approval': 'blue',
   approval: 'blue',
-  welcome: 'green',
-  commencement: 'green',
-  discharge: 'green',
-  custom: 'purple',
+  welcome: 'blue',
+  commencement: 'blue',
+  discharge: 'blue',
+  custom: 'blue',
 }
 
 export interface ThemeClasses {
