@@ -39,6 +39,7 @@ export interface LetterTypeField {
   options?: { value: string; label: string }[] // for type: 'select'
   section?: string // optional grouping heading in the form UI
   showIf?: { field: string; equals: string } // only show when another field matches
+  rows?: number // textarea height (rows); defaults to a small box when omitted
 }
 
 export interface LetterType {

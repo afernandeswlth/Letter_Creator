@@ -157,15 +157,21 @@ export const LETTER_TYPES: Record<LetterTypeId, LetterType> = {
     label: 'Discharge Confirmation Letter',
     description: 'Confirm loan discharge and account closure with this letter.',
     icon: 'M9 12l2 2 4-4m-3-8.3l7 3.1v4.7c0 4.4-3 8.5-7 9.7-4-1.2-7-5.3-7-9.7V6.5l7-3.1z',
-    status: 'disabled',
+    status: 'available',
     inputModel: 'form',
     engine: 'discharge',
+    source: 'manual',
     fields: [
-      { id: 'borrowerName', label: 'Borrower Name(s)', type: 'text', required: true, placeholder: 'Mr John Smith', section: 'Borrower' },
-      { id: 'borrowerEmail', label: 'Borrower Email', type: 'email', required: false, placeholder: 'john@example.com', section: 'Borrower' },
-      { id: 'loanAccountNumber', label: 'Loan Account Number', type: 'text', required: true, placeholder: '200009019', section: 'Loan' },
-      { id: 'securityAddress', label: 'Security Property Address', type: 'textarea', required: true, placeholder: '28 Leichhardt Drive, Moranbah QLD 4744', section: 'Loan' },
-      { id: 'dischargeDate', label: 'Discharge / Settlement Date', type: 'date', required: true, section: 'Loan' },
+      // Recipient
+      { id: 'recipientName', label: 'Recipient Name', type: 'text', required: true, placeholder: 'Mrs Louise Ntambwe', section: 'Recipient' },
+      { id: 'recipientAddress', label: 'Recipient Address', type: 'textarea', required: false, rows: 3, placeholder: '19 Tulipwood Street,\nCollingwood Park, QLD,\n4301', help: 'One line per row.', section: 'Recipient' },
+      // Discharge Details
+      { id: 'date', label: 'Letter Date', type: 'date', required: false, section: 'Discharge Details' },
+      { id: 'productName', label: 'Loan Product', type: 'text', required: false, placeholder: 'Ultra', section: 'Discharge Details' },
+      { id: 'accountNumbers', label: 'Loan Account Number(s)', type: 'text', required: true, placeholder: '400136590 & 400136611', section: 'Discharge Details' },
+      { id: 'dischargeDate', label: 'Discharge / Release Date', type: 'text', required: false, placeholder: '27 February 2026', section: 'Discharge Details' },
+      // Security
+      { id: 'securityAddress', label: 'Security Address', type: 'textarea', required: false, rows: 2, placeholder: '19 Tulipwood Street, Collingwood Park, Queensland, 4301, Australia', section: 'Security' },
     ],
   },
 
@@ -185,7 +191,7 @@ export const LETTER_TYPES: Record<LetterTypeId, LetterType> = {
       // Letter
       { id: 'date', label: 'Date', type: 'date', required: false, section: 'Letter' },
       { id: 'salutation', label: 'Greeting (after “Dear”)', type: 'text', required: false, placeholder: 'Mr. Smith', help: 'Leave blank to use the recipient name.', section: 'Letter' },
-      { id: 'body', label: 'Letter Body', type: 'textarea', required: true, placeholder: 'Write the letter content…\n\nLeave a blank line between paragraphs.', section: 'Letter' },
+      { id: 'body', label: 'Letter Body', type: 'textarea', required: true, rows: 14, placeholder: 'Write the letter content…\n\nLeave a blank line between paragraphs.', section: 'Letter' },
       { id: 'signOff', label: 'Sign-off', type: 'text', required: false, default: 'Sincerely,', section: 'Letter' },
       // Signature
       { id: 'senderName', label: 'Your Name', type: 'text', required: false, placeholder: 'Firstname Lastname', section: 'Signature' },

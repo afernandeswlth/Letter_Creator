@@ -138,7 +138,7 @@ async function applyChanges() {
               v-if="f.type === 'textarea'"
               :id="`edit-${f.id}`"
               v-model="draft[f.id]"
-              :rows="f.id === 'specialConditions' ? 6 : 2"
+              :rows="f.rows ?? (f.id === 'specialConditions' ? 6 : 2)"
               :placeholder="f.placeholder"
               class="mt-1.5 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm leading-relaxed shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
