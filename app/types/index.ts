@@ -31,7 +31,7 @@ export type LetterTypeStatus = 'available' | 'coming-soon' | 'disabled'
 export interface LetterTypeField {
   id: string
   label: string
-  type: 'text' | 'textarea' | 'date' | 'number' | 'email' | 'currency' | 'select'
+  type: 'text' | 'textarea' | 'richtext' | 'date' | 'number' | 'email' | 'currency' | 'select'
   required: boolean
   placeholder?: string
   help?: string
@@ -115,10 +115,14 @@ export interface EngineResult {
 
 export interface LetterRecord {
   id: string
-  borrowerName: string
-  template: string
+  letterType: string // e.g. 'welcome', 'approval'
+  typeLabel: string // e.g. 'Welcome Letter'
+  brand: string // 'wlth' | 'mma'
+  customer: string | null
+  reference: string | null
   status: LetterStatus
-  createdAt: string
+  filename: string
+  createdAt: string // ISO timestamp
 }
 
 export interface DeliveryResult {

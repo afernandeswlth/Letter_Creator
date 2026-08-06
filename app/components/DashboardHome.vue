@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { LETTER_TYPES } from '~/utils/letterTypes'
-import type { LetterStatus, LetterTypeId } from '~/types'
+import type { LetterTypeId } from '~/types'
 
 const { chooseType } = useLetterWizard()
+const { getRecentLetters, downloadStoredLetter } = useLetterApi()
 
 // Letters grouped by the team that uses them (matches the WLTH team layout).
 interface Group {
@@ -38,13 +39,32 @@ const THEME = {
 
 const typeOf = (id: LetterTypeId) => LETTER_TYPES[id]
 
-// Placeholder recent-letters data (not yet wired to a store).
-interface RecentRow { icon: string; type: string; customer: string; reference: string; modified: string; status: LetterStatus }
-const recent: RecentRow[] = [
-  { icon: 'mail', type: 'Welcome Letter', customer: 'John Doe', reference: 'L-2024-00521', modified: '21 May 2024, 10:24 AM', status: 'Draft' },
-  { icon: 'clipboard-check', type: 'Conditional Approval Letter', customer: 'Jane Smith', reference: 'L-2024-00520', modified: '20 May 2024, 3:15 PM', status: 'Completed' },
-  { icon: 'square-pen', type: 'Custom Letter', customer: 'ABC Construction Pty Ltd', reference: 'L-2024-00519', modified: '20 May 2024, 9:08 AM', status: 'Sent' },
-]
+// Recent letters — real history from the store (Supabase, via /api/letters/recent).
+const { data: recent, pending, refresh } = useAsyncData('dashboard-recent', () => getRecentLetters(8), {
+  default: () => [],
+})
+
+const iconFor = (letterType: string) => TYPE_ICON[letterType as LetterTypeId] ?? 'file-text'
+const brandLabel = (brand: string) => (brand === 'mma' ? 'MMA' : 'WLTH')
+function fmtDate(iso: string) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleString('en-AU', {
+    day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true,
+  })
+}
+
+const downloadingId = ref('')
+async function onDownload(id: string) {
+  downloadingId.value = id
+  try {
+    await downloadStoredLetter(id)
+  } catch {
+    // best-effort; the file may have been removed from storage
+  } finally {
+    downloadingId.value = ''
+  }
+}
 </script>
 
 <template>
@@ -108,36 +128,68 @@ const recent: RecentRow[] = [
     <section class="mt-8 rounded-2xl border border-slate-200 bg-white p-6">
       <div class="flex items-center justify-between">
         <h2 class="text-base font-semibold text-slate-900">Recent Letters</h2>
-        <button disabled class="cursor-not-allowed text-sm font-semibold text-blue-300">View all</button>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 transition hover:text-blue-700"
+          @click="refresh()"
+        >
+          <WIcon name="file-text" class="h-4 w-4" />
+          Refresh
+        </button>
       </div>
 
-      <div class="pointer-events-none mt-4 overflow-x-auto opacity-50">
+      <!-- Loading -->
+      <div v-if="pending && !recent.length" class="mt-6 flex items-center justify-center py-10 text-sm text-slate-400">
+        <svg class="mr-2 h-5 w-5 animate-spin text-blue-600" viewBox="0 0 24 24" fill="none">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+        </svg>
+        Loading recent letters…
+      </div>
+
+      <!-- Empty -->
+      <div v-else-if="!recent.length" class="mt-6 flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 py-10 text-center">
+        <WIcon name="file-text" class="h-7 w-7 text-slate-300" />
+        <p class="mt-2 text-sm font-medium text-slate-600">No letters yet</p>
+        <p class="mt-0.5 text-xs text-slate-400">Every letter you download or draft will appear here.</p>
+      </div>
+
+      <!-- Table -->
+      <div v-else class="mt-4 overflow-x-auto">
         <table class="w-full text-left text-sm">
           <thead>
             <tr class="border-b border-slate-200 text-[11px] uppercase tracking-wide text-slate-400">
               <th class="py-3 pr-4 font-medium">Letter Type</th>
               <th class="py-3 pr-4 font-medium">Customer</th>
               <th class="py-3 pr-4 font-medium">Reference</th>
-              <th class="py-3 pr-4 font-medium">Last Modified</th>
+              <th class="py-3 pr-4 font-medium">Created</th>
               <th class="py-3 pr-4 font-medium">Status</th>
               <th class="py-3 pr-4 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="row in recent" :key="row.reference" class="border-b border-slate-100 last:border-0">
+            <tr v-for="row in recent" :key="row.id" class="border-b border-slate-100 last:border-0">
               <td class="py-4 pr-4">
                 <span class="flex items-center gap-2.5 text-slate-900">
-                  <WIcon :name="row.icon" class="h-4 w-4 flex-none text-blue-500" />
-                  {{ row.type }}
+                  <WIcon :name="iconFor(row.letterType)" class="h-4 w-4 flex-none text-blue-500" />
+                  {{ row.typeLabel }}
+                  <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">{{ brandLabel(row.brand) }}</span>
                 </span>
               </td>
-              <td class="py-4 pr-4 text-slate-600">{{ row.customer }}</td>
-              <td class="py-4 pr-4 text-slate-600">{{ row.reference }}</td>
-              <td class="py-4 pr-4 text-slate-600">{{ row.modified }}</td>
+              <td class="py-4 pr-4 text-slate-600">{{ row.customer || '—' }}</td>
+              <td class="py-4 pr-4 text-slate-600">{{ row.reference || '—' }}</td>
+              <td class="py-4 pr-4 text-slate-600">{{ fmtDate(row.createdAt) }}</td>
               <td class="py-4 pr-4"><StatusBadge :status="row.status" /></td>
-              <td class="py-4 pr-4 text-slate-400">
-                <button class="rounded p-1 hover:bg-slate-100" aria-label="Actions">
-                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" /></svg>
+              <td class="py-4 pr-4">
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-40"
+                  :disabled="downloadingId === row.id"
+                  aria-label="Download PDF"
+                  @click="onDownload(row.id)"
+                >
+                  <WIcon name="file-check" class="h-4 w-4 text-rose-500" />
+                  {{ downloadingId === row.id ? '…' : 'PDF' }}
                 </button>
               </td>
             </tr>

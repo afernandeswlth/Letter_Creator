@@ -4,6 +4,7 @@ import { runEnginePdf } from '~~/server/utils/engine'
 import { createGmailDraft, gmailConfig } from '~~/server/utils/gmail'
 import { createDraftViaZapier, zapierEmailConfig } from '~~/server/utils/zapierEmail'
 import { welcomeEmail } from '~~/server/utils/emailTemplate'
+import { saveLetter } from '~~/server/utils/letterStore'
 
 /**
  * POST /api/letters/email
@@ -70,13 +71,20 @@ export default defineEventHandler(async (event) => {
   }
 
   const gmailLink = 'https://mail.google.com/mail/u/0/#drafts'
+  const record = () =>
+    saveLetter(
+      { letterType: 'welcome', brand, customer: (field('name') || to).replace(/^(mr|mrs|ms|miss|dr)\.?\s+/i, ''), reference: field('accountNumber') || null },
+      pdf, filename, 'Draft',
+    )
   try {
     if (zapierEmailConfig().configured) {
       await createDraftViaZapier({ to, subject, html, attachments })
+      await record()
       return { ok: true, via: 'zapier', link: gmailLink, to }
     }
     if (gmailConfig().configured) {
       const draft = await createGmailDraft({ to, subject, html, attachments })
+      await record()
       return { ok: true, via: 'gmail', ...draft, to }
     }
     throw new Error(

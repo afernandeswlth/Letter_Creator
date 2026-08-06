@@ -11,7 +11,6 @@ const nav: NavItem[] = [
   { label: 'Dashboard', to: '/', icon: 'house' },
   { label: 'All Letters', to: '/letters', disabled: true, icon: 'file-text' },
   { label: 'Templates', to: '/templates', icon: 'file-text' },
-  { label: 'Settings', to: '/settings', disabled: true, icon: 'settings' },
 ]
 
 // Shared so it persists across page navigation.

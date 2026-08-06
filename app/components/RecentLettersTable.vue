@@ -17,8 +17,8 @@ const rows = computed<LetterRecord[]>(() => letters.value ?? [])
       <table class="w-full text-left text-sm">
         <thead>
           <tr class="border-b border-slate-200 text-slate-500">
-            <th class="py-3 pr-4 font-medium">Borrower Name</th>
-            <th class="py-3 pr-4 font-medium">Template</th>
+            <th class="py-3 pr-4 font-medium">Customer</th>
+            <th class="py-3 pr-4 font-medium">Letter</th>
             <th class="py-3 pr-4 font-medium">Status</th>
             <th class="py-3 pr-4 font-medium">Created</th>
             <th class="py-3 pr-4 font-medium">Actions</th>
@@ -34,8 +34,8 @@ const rows = computed<LetterRecord[]>(() => letters.value ?? [])
             :key="row.id"
             class="border-b border-slate-100 last:border-0"
           >
-            <td class="py-4 pr-4 text-slate-900">{{ row.borrowerName }}</td>
-            <td class="py-4 pr-4 text-slate-600">{{ row.template }}</td>
+            <td class="py-4 pr-4 text-slate-900">{{ row.customer || '—' }}</td>
+            <td class="py-4 pr-4 text-slate-600">{{ row.typeLabel }}</td>
             <td class="py-4 pr-4"><StatusBadge :status="row.status" /></td>
             <td class="py-4 pr-4 text-slate-600">{{ row.createdAt }}</td>
             <td class="py-4 pr-4">

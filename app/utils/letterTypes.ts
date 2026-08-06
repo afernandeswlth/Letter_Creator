@@ -191,7 +191,7 @@ export const LETTER_TYPES: Record<LetterTypeId, LetterType> = {
       // Letter
       { id: 'date', label: 'Date', type: 'date', required: false, section: 'Letter' },
       { id: 'salutation', label: 'Greeting (after “Dear”)', type: 'text', required: false, placeholder: 'Mr. Smith', help: 'Leave blank to use the recipient name.', section: 'Letter' },
-      { id: 'body', label: 'Letter Body', type: 'textarea', required: true, rows: 14, placeholder: 'Write the letter content…\n\nLeave a blank line between paragraphs.', section: 'Letter' },
+      { id: 'body', label: 'Letter Body', type: 'richtext', required: true, placeholder: 'Write the letter content… Use the toolbar for bold, underline, size and colour. Leave a blank line between paragraphs.', help: 'Formatting (bold, underline, size, colour) carries through to the PDF.', section: 'Letter' },
       { id: 'signOff', label: 'Sign-off', type: 'text', required: false, default: 'Sincerely,', section: 'Letter' },
       // Signature
       { id: 'senderName', label: 'Your Name', type: 'text', required: false, placeholder: 'Firstname Lastname', section: 'Signature' },

@@ -13,6 +13,9 @@ Font note: the template is set in Arial; we use Helvetica (metric-compatible).
 """
 import io
 import os
+import re
+from html import escape as _hesc
+from html.parser import HTMLParser
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
@@ -93,6 +96,166 @@ def _page(canvas, doc, brand):
     canvas.restoreState()
 
 
+# --- Rich-text body -------------------------------------------------------
+# The Letter Body field is a small WYSIWYG editor (app/components/RichTextEditor.vue)
+# that emits HTML using <b>/<i>/<u> and <font size color> tags. reportlab's
+# Paragraph understands the same tag vocabulary, so we translate the editor HTML
+# into paragraph markup rather than dropping the formatting.
+
+# HTML <font size="1..7"> is a relative scale; map it to absolute points. 3 is
+# the editor's "Normal" and matches the body font size.
+_FONT_PT = {1: 7.5, 2: 9, 3: 10.5, 4: 12, 5: 15, 6: 20, 7: 27}
+_BLOCK_TAGS = {'p', 'div', 'li', 'ul', 'ol', 'blockquote'}
+_DEFAULT_PT = 10.5
+
+
+def _parse_style(s):
+    out = {}
+    for part in (s or '').split(';'):
+        if ':' in part:
+            k, _, val = part.partition(':')
+            out[k.strip().lower()] = val.strip().lower()
+    return out
+
+
+def _clean_color(c):
+    """Return a reportlab-safe colour: #rrggbb, rgb(...) → hex, or a plain name."""
+    c = (c or '').strip()
+    m = re.match(r'rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)', c)
+    if m:
+        return '#%02x%02x%02x' % (int(m.group(1)), int(m.group(2)), int(m.group(3)))
+    if re.match(r'^#[0-9a-fA-F]{3,8}$', c):
+        return c[:7]
+    if re.match(r'^[a-zA-Z]+$', c):
+        return c
+    return '#111827'
+
+
+def _pt_from_style(style):
+    sz = style.get('font-size', '')
+    try:
+        if sz.endswith('px'):
+            return round(float(sz[:-2]) * 0.75, 1)
+        if sz.endswith('pt'):
+            return float(sz[:-2])
+    except ValueError:
+        pass
+    return None
+
+
+class _RichTextParser(HTMLParser):
+    """Convert editor HTML into a list of (line_markup, max_font_pt) tuples.
+    A <br> or block element ends the current line; an empty line marks a
+    paragraph break."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.lines = []
+        self._cur = []
+        self._stack = []      # per open element: list of closing tags to emit
+        self._line_pt = _DEFAULT_PT
+
+    def _flush(self):
+        self.lines.append((''.join(self._cur), self._line_pt))
+        self._cur = []
+        self._line_pt = _DEFAULT_PT
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'br':
+            self._flush()
+            return
+        a = {k.lower(): (val or '') for k, val in attrs}
+        style = _parse_style(a.get('style', ''))
+        opens, closes = [], []
+
+        weight = style.get('font-weight', '')
+        if tag in ('b', 'strong') or weight in ('bold', 'bolder') or weight[:3] in ('600', '700', '800', '900'):
+            opens.append('<b>'); closes.append('</b>')
+        if tag in ('i', 'em') or style.get('font-style') == 'italic':
+            opens.append('<i>'); closes.append('</i>')
+        if tag == 'u' or 'underline' in style.get('text-decoration', ''):
+            opens.append('<u>'); closes.append('</u>')
+
+        color = a.get('color') if tag == 'font' else None
+        color = style.get('color') or color
+        pt = None
+        if tag == 'font' and a.get('size', '').isdigit():
+            pt = _FONT_PT.get(int(a['size']))
+        pt = _pt_from_style(style) or pt
+
+        font_attr = ''
+        if color:
+            font_attr += ' color="%s"' % _clean_color(color)
+        if pt:
+            font_attr += ' size="%s"' % pt
+            self._line_pt = max(self._line_pt, pt)
+        if font_attr:
+            opens.append('<font%s>' % font_attr); closes.append('</font>')
+
+        if tag in _BLOCK_TAGS and self._cur:
+            self._flush()
+        self._cur.extend(opens)
+        self._stack.append(closes)
+
+    def handle_startendtag(self, tag, attrs):
+        if tag == 'br':
+            self._flush()
+        else:
+            self.handle_starttag(tag, attrs)
+            self.handle_endtag(tag)
+
+    def handle_endtag(self, tag):
+        if tag == 'br':
+            return
+        closes = self._stack.pop() if self._stack else []
+        for c in reversed(closes):
+            self._cur.append(c)
+        if tag in _BLOCK_TAGS:
+            self._flush()
+
+    def handle_data(self, data):
+        self._cur.append(_hesc(data, quote=False))
+
+    def result(self):
+        if self._cur:
+            self._flush()
+        return self.lines
+
+
+def _looks_like_html(s):
+    return bool(re.search(r'<(b|i|u|br|div|p|font|span|strong|em|ul|ol|li)\b', s or '', re.I))
+
+
+def _rich_body_flow(raw, para_style):
+    """Turn editor HTML into a list of Paragraph flowables, grouping lines into
+    paragraphs (blank line = new paragraph) and widening the leading when a
+    paragraph uses a larger font so big text doesn't clip."""
+    parser = _RichTextParser()
+    parser.feed(raw.replace('\r\n', '\n'))
+    lines = parser.result()
+
+    blocks, cur, cur_pt = [], [], _DEFAULT_PT
+    for markup, pt in lines:
+        plain = re.sub(r'<[^>]+>', '', markup).replace('\xa0', ' ').strip()
+        if plain == '':
+            if cur:
+                blocks.append((cur, cur_pt)); cur, cur_pt = [], _DEFAULT_PT
+        else:
+            cur.append(markup); cur_pt = max(cur_pt, pt)
+    if cur:
+        blocks.append((cur, cur_pt))
+
+    flow = []
+    base_lead = para_style.leading
+    for markup_lines, pt in blocks:
+        style = para_style
+        if pt > _DEFAULT_PT:
+            style = ParagraphStyle('rt%.0f' % pt, parent=para_style,
+                                   leading=max(base_lead, pt * 1.32))
+        flow.append(Paragraph('<br/>'.join(markup_lines), style))
+    return flow
+
+
 def build_custom_pdf(brand_id, v):
     brand = BRANDS.get(brand_id, BRANDS['wlth'])
     esc = PL.esc
@@ -132,13 +295,18 @@ def build_custom_pdf(brand_id, v):
     flow.append(Paragraph(f'Dear {esc(greeting)},' if greeting else 'Dear,', small))
     flow.append(Spacer(1, 13))
 
-    # Body — blank lines separate paragraphs; single newlines break within one.
+    # Body — the WYSIWYG editor sends HTML (bold/italic/underline/size/colour),
+    # which we translate to reportlab markup. Plain-text bodies (or other
+    # callers) fall back to the newline-based paragraph split.
     raw = g('body')
-    blocks = [b for b in raw.replace('\r\n', '\n').split('\n\n')]
-    for blk in blocks:
-        text = '<br/>'.join(esc(l) for l in blk.split('\n') if l.strip() != '')
-        if text:
-            flow.append(Paragraph(text, para))
+    if _looks_like_html(raw):
+        flow.extend(_rich_body_flow(raw, para))
+    else:
+        blocks = [b for b in raw.replace('\r\n', '\n').split('\n\n')]
+        for blk in blocks:
+            text = '<br/>'.join(esc(l) for l in blk.split('\n') if l.strip() != '')
+            if text:
+                flow.append(Paragraph(text, para))
 
     # Sign-off + signature block
     flow.append(Spacer(1, 4))

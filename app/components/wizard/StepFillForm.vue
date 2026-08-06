@@ -45,7 +45,12 @@ onMounted(() => {
   if (!supportsSchedule4.value) state.value.formMode = 'manual'
 })
 
-const missing = (f: LetterTypeField) => f.required && !(state.value.fieldValues[f.id] ?? '').trim()
+function fieldText(f: LetterTypeField) {
+  const v = state.value.fieldValues[f.id] ?? ''
+  // richtext holds HTML — measure the visible text, not the markup.
+  return f.type === 'richtext' ? v.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim() : v.trim()
+}
+const missing = (f: LetterTypeField) => f.required && !fieldText(f)
 const isValid = computed(() => fields.value.every((f) => !missing(f)))
 
 // --- Schedule 4 upload (auto-fill) -----------------------------------------
@@ -196,14 +201,20 @@ function onNext() {
           <div
             v-for="f in fieldsIn(section)"
             :key="f.id"
-            :class="f.type === 'textarea' ? 'sm:col-span-2' : ''"
+            :class="f.type === 'textarea' || f.type === 'richtext' ? 'sm:col-span-2' : ''"
           >
             <label :for="f.id" class="block text-sm font-medium text-slate-700">
               {{ f.label }} <span v-if="f.required" class="text-red-500">*</span>
             </label>
 
+            <RichTextEditor
+              v-if="f.type === 'richtext'"
+              v-model="state.fieldValues[f.id]"
+              :placeholder="f.placeholder"
+              class="mt-1.5"
+            />
             <textarea
-              v-if="f.type === 'textarea'"
+              v-else-if="f.type === 'textarea'"
               :id="f.id"
               v-model="state.fieldValues[f.id]"
               :rows="f.rows ?? 2"

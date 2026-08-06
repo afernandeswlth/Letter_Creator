@@ -4,6 +4,7 @@ import { runEngineFormPdf } from '~~/server/utils/engine'
 import { createDraftViaZapier } from '~~/server/utils/zapierEmail'
 import { createGmailDraft, gmailConfig } from '~~/server/utils/gmail'
 import { formEmail } from '~~/server/utils/emailTemplate'
+import { formMeta, saveLetter } from '~~/server/utils/letterStore'
 
 /** POST /api/forms/email — generate a form letter's PDF and create a Gmail draft. */
 export default defineEventHandler(async (event) => {
@@ -50,17 +51,22 @@ export default defineEventHandler(async (event) => {
   // commencement), prefer the Gmail service-account path — it natively drafts
   // as that mailbox and adds the Cc header. Otherwise keep Zapier-first.
   const preferGmail = Boolean(sender) && gmailConfig().configured
+  const record = () =>
+    saveLetter(formMeta(body.letterType, brand, body.values ?? {}), pdf, (body.filename || 'Letter').trim(), 'Draft')
   try {
     if (preferGmail) {
       const draft = await createGmailDraft({ to, cc, subject, html, attachments, sender })
+      await record()
       return { ok: true, via: 'gmail', ...draft, to, cc, from: sender ?? null }
     }
     if (webhookUrl) {
       await createDraftViaZapier({ to, cc, subject, html, attachments, sender }, webhookUrl)
+      await record()
       return { ok: true, via: 'zapier', link: gmailLink, to, cc, from: sender ?? null }
     }
     if (!sender && gmailConfig().configured) {
       const draft = await createGmailDraft({ to, cc, subject, html, attachments, sender })
+      await record()
       return { ok: true, via: 'gmail', ...draft, to, cc, from: sender ?? null }
     }
     throw new Error(

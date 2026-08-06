@@ -3,20 +3,9 @@ import type { BrandId, DeliveryResult, EngineResult, LetterRecord } from '~/type
 /**
  * Front-end API layer.
  *
- * `parseFunderDocs` and `renderLetters` call the REAL Nitro endpoints backed by
- * the Python letter engine. Drive/email/recent-letters are still mocked until
- * those integrations are wired.
+ * These call the REAL Nitro endpoints (locally) / Flask (production), backed by
+ * the Python letter engine and, for history, Supabase.
  */
-
-function delay<T>(value: T, ms = 500): Promise<T> {
-  return new Promise((resolve) => setTimeout(() => resolve(value), ms))
-}
-
-let idCounter = 0
-function makeId(prefix: string): string {
-  idCounter += 1
-  return `${prefix}_${idCounter}_${Math.random().toString(36).slice(2, 8)}`
-}
 
 function formData(files: File[], fields: Record<string, string> = {}): FormData {
   const fd = new FormData()
@@ -251,14 +240,19 @@ export function useLetterApi() {
     }
   }
 
-  /** GET /api/letters — recent letters for the dashboard table (mock). */
-  async function getRecentLetters(): Promise<LetterRecord[]> {
-    return delay([
-      { id: 'l1', borrowerName: 'A&M Stevens Pty Ltd (SMSF)', template: 'WLTH Welcome Letter', status: 'Completed', createdAt: '24 Jun 2026, 6:52 PM' },
-      { id: 'l2', borrowerName: 'Mr Matthew Stevens', template: 'WLTH Welcome Letter', status: 'Sent', createdAt: '24 Jun 2026, 6:52 PM' },
-      { id: 'l3', borrowerName: 'Mrs Ashleigh Stevens', template: 'WLTH Welcome Letter', status: 'Draft', createdAt: '24 Jun 2026, 6:51 PM' },
-    ])
+  /** GET /api/letters/recent — recent letters for the dashboard table. */
+  async function getRecentLetters(limit = 20): Promise<LetterRecord[]> {
+    const res = await $fetch<{ letters: LetterRecord[] }>('/api/letters/recent', {
+      params: { limit },
+    })
+    return res.letters ?? []
   }
 
-  return { parseFunderDocs, renderLetters, previewPages, fetchPdf, downloadPdf, downloadZip, createEmailDraft, parseFormSource, formPreview, downloadFormPdf, createFormEmailDraft, getRecentLetters }
+  /** Open the stored PDF for a saved letter via a short-lived signed URL. */
+  async function downloadStoredLetter(id: string): Promise<void> {
+    const { url } = await $fetch<{ url: string }>('/api/letters/file', { params: { id } })
+    window.open(url, '_blank', 'noopener')
+  }
+
+  return { parseFunderDocs, renderLetters, previewPages, fetchPdf, downloadPdf, downloadZip, createEmailDraft, parseFormSource, formPreview, downloadFormPdf, createFormEmailDraft, getRecentLetters, downloadStoredLetter }
 }

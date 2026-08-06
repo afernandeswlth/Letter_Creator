@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { state, currentType, themeClasses, goTo, reset, resetForm, confirmingHome, requestGoHome, cancelGoHome, confirmGoHome } = useLetterWizard()
+const { state, currentType, themeClasses, goTo, reset, resetForm, confirmingHome, requestGoHome, cancelGoHome, confirmGoHome, confirmingRestart, cancelRestart, confirmRestart } = useLetterWizard()
 
 // The dashboard shows until a letter type is chosen. An 'available' type runs
 // its wizard — 'upload' types (Welcome) use the funder-doc flow, 'form' types
@@ -90,6 +90,31 @@ const showReset = computed(() => isAvailable.value)
             @click="confirmGoHome"
           >
             Go to home
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirm before restarting this letter ("Create another") -->
+    <div v-if="confirmingRestart" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div class="absolute inset-0 bg-slate-900/40" @click="cancelRestart" />
+      <div class="relative w-full max-w-sm rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
+        <h3 class="text-base font-semibold text-slate-900">Start another {{ currentType?.label }}?</h3>
+        <p class="mt-2 text-sm text-slate-500">This clears the current details and any uploaded documents, and starts a new one from the beginning.</p>
+        <div class="mt-6 flex justify-end gap-3">
+          <button
+            type="button"
+            class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            @click="cancelRestart"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+            @click="confirmRestart"
+          >
+            Start another
           </button>
         </div>
       </div>

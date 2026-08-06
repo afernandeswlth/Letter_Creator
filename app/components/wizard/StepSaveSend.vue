@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { DeliveryResult } from '~/types'
 
-const { state, back, reset } = useLetterWizard()
+const { state, back, requestRestart } = useLetterWizard()
 const { createEmailDraft, downloadZip } = useLetterApi()
 
 const emails = reactive<Record<string, string>>({})
@@ -168,7 +168,7 @@ async function onDownloadAll() {
 
     <div class="mt-8 flex items-center justify-between border-t border-slate-100 pt-6">
       <button type="button" class="rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50" @click="back">Back</button>
-      <button type="button" class="rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50" @click="reset">Create another</button>
+      <button type="button" class="rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50" @click="requestRestart">Create another</button>
     </div>
   </div>
 </template>

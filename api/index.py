@@ -26,6 +26,7 @@ sys.path.insert(0, os.path.join(ROOT, 'engine'))
 
 import cli          # noqa: E402  group/cmd_parse/cmd_render/_build_party_pdf
 import pdf_letter   # noqa: E402  build_pdf
+import store        # noqa: E402  letter-history persistence (Supabase)
 
 app = Flask(__name__)
 
@@ -67,6 +68,29 @@ def _json(payload, status=200):
 @app.get('/api/health')
 def health():
     return _json({'ok': True})
+
+
+# --------------------------------------------------------------------------
+# letter history (Supabase) — read side for the dashboard
+# --------------------------------------------------------------------------
+@app.get('/api/letters/recent')
+def letters_recent():
+    try:
+        limit = int(request.args.get('limit', '20'))
+    except ValueError:
+        limit = 20
+    return _json({'letters': store.recent_letters(min(max(limit, 1), 100))})
+
+
+@app.get('/api/letters/file')
+def letters_file():
+    letter_id = (request.args.get('id') or '').strip()
+    if not letter_id:
+        return _json({'error': 'Missing id'}, 400)
+    url = store.signed_url(letter_id)
+    if not url:
+        return _json({'error': 'Not found'}, 404)
+    return _json({'url': url})
 
 
 @app.post('/api/letters/parse')
@@ -146,7 +170,14 @@ def zip_letters():
                     d, brand, dd_bsb, dd_account,
                     smsf_number=None if d['is_entity'] else smsf_number)
                 name = re.sub(r'^(mr|mrs|ms|miss|dr)\.?\s+', '', d['recipient_name'], flags=re.I)
-                z.writestr(f'{label} Welcome Letter - {name}.pdf', data)
+                fname = f'{label} Welcome Letter - {name}'
+                z.writestr(f'{fname}.pdf', data)
+                # Record each party's letter in the history (best-effort).
+                store.save_letter({
+                    'letter_type': 'welcome', 'type_label': store.LABELS['welcome'],
+                    'brand': brand, 'customer': name,
+                    'reference': d.get('loan_facility_number') or None,
+                }, data, fname, 'Completed')
         return Response(buf.getvalue(), mimetype='application/zip', headers={
             'Content-Disposition': 'attachment; filename="letters.zip"',
         })
@@ -209,6 +240,11 @@ def email():
     except Exception as e:  # noqa: BLE001
         return _json({'error': str(e)}, 502)
 
+    store.save_letter({
+        'letter_type': 'welcome', 'type_label': store.LABELS['welcome'],
+        'brand': brand, 'customer': store._strip_title(_form('name') or to),
+        'reference': _form('accountNumber') or None,
+    }, pdf_bytes, filename, 'Draft')
     return _json({'ok': True, 'via': 'zapier',
                   'link': 'https://mail.google.com/mail/u/0/#drafts', 'to': to})
 
@@ -235,9 +271,15 @@ def form_parse_source():
 @app.post('/api/forms/pdf')
 def form_pdf():
     data = request.get_json(force=True, silent=True) or {}
+    letter_type = data.get('letterType', '')
+    brand = data.get('brand', 'wlth')
+    values = data.get('values') or {}
     try:
-        pdf_bytes = cli.build_form_pdf(data.get('letterType', ''), data.get('brand', 'wlth'), data.get('values') or {})
+        pdf_bytes = cli.build_form_pdf(letter_type, brand, values)
         name = (data.get('filename') or 'Letter').strip()
+        # Blank template downloads (no field values) are not real letters — skip.
+        if values:
+            store.save_letter(store.form_meta(letter_type, brand, values), pdf_bytes, name, 'Completed')
         return Response(pdf_bytes, mimetype='application/pdf', headers={
             'Content-Disposition': f'attachment; filename="{name}.pdf"',
         })
@@ -313,6 +355,7 @@ def form_email():
             return _json({'error': f'Zapier webhook returned {res.status_code}. {res.text[:200]}'}, 502)
     except Exception as e:  # noqa: BLE001
         return _json({'error': str(e)}, 502)
+    store.save_letter(store.form_meta(letter_type, brand, values), pdf_bytes, filename, 'Draft')
     return _json({'ok': True, 'via': 'zapier',
                   'link': 'https://mail.google.com/mail/u/0/#drafts',
                   'to': to, 'cc': cc or None, 'from': sender})

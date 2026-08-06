@@ -109,6 +109,20 @@ export function useLetterWizard() {
     confirmingHome.value = false
     reset()
   }
+
+  // Confirm before restarting this letter (e.g. "Create another") — stays on the
+  // same letter type, back to step 1, with everything (incl. attachments) cleared.
+  const confirmingRestart = useState<boolean>('confirm-restart', () => false)
+  function requestRestart() {
+    confirmingRestart.value = true
+  }
+  function cancelRestart() {
+    confirmingRestart.value = false
+  }
+  function confirmRestart() {
+    confirmingRestart.value = false
+    resetForm()
+  }
   /** Choose a letter type and start its wizard at step 1. */
   function chooseType(id: LetterTypeId) {
     reset()
@@ -127,5 +141,5 @@ export function useLetterWizard() {
     state.value.brand = brand
   }
 
-  return { state, currentBrand, currentType, theme, themeClasses, steps, formFilename, reset, resetForm, chooseType, goTo, next, back, setBrand, confirmingHome, requestGoHome, cancelGoHome, confirmGoHome }
+  return { state, currentBrand, currentType, theme, themeClasses, steps, formFilename, reset, resetForm, chooseType, goTo, next, back, setBrand, confirmingHome, requestGoHome, cancelGoHome, confirmGoHome, confirmingRestart, requestRestart, cancelRestart, confirmRestart }
 }

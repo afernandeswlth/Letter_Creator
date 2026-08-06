@@ -130,12 +130,18 @@ async function applyChanges() {
           <div
             v-for="f in fieldsIn(section)"
             :key="f.id"
-            :class="f.type === 'textarea' ? 'sm:col-span-2' : ''"
+            :class="f.type === 'textarea' || f.type === 'richtext' ? 'sm:col-span-2' : ''"
           >
             <label :for="`edit-${f.id}`" class="block text-sm font-medium text-slate-700">{{ f.label }}</label>
 
+            <RichTextEditor
+              v-if="f.type === 'richtext'"
+              v-model="draft[f.id]"
+              :placeholder="f.placeholder"
+              class="mt-1.5"
+            />
             <textarea
-              v-if="f.type === 'textarea'"
+              v-else-if="f.type === 'textarea'"
               :id="`edit-${f.id}`"
               v-model="draft[f.id]"
               :rows="f.rows ?? (f.id === 'specialConditions' ? 6 : 2)"
