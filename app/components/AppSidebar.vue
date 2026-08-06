@@ -10,7 +10,7 @@ interface NavItem {
 const nav: NavItem[] = [
   { label: 'Dashboard', to: '/', icon: 'house' },
   { label: 'All Letters', to: '/letters', disabled: true, icon: 'file-text' },
-  { label: 'Templates', to: '/templates', disabled: true, icon: 'file-text' },
+  { label: 'Templates', to: '/templates', icon: 'file-text' },
   { label: 'Settings', to: '/settings', disabled: true, icon: 'settings' },
 ]
 
