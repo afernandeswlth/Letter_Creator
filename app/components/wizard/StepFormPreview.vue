@@ -35,8 +35,12 @@ const sections = computed(() => {
   }
   return seen
 })
+function isVisible(f: LetterTypeField) {
+  const c = f.showIf
+  return !c || (draft[c.field] ?? '') === c.equals
+}
 const fieldsIn = (section: string) =>
-  fields.value.filter((f) => (f.section ?? 'Details') === section)
+  fields.value.filter((f) => (f.section ?? 'Details') === section && isVisible(f))
 
 const editing = ref(false)
 const draft = reactive<Record<string, string>>({})

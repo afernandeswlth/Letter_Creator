@@ -23,7 +23,12 @@ const sections = computed(() => {
   }
   return seen
 })
-const fieldsIn = (section: string) => fields.value.filter((f) => (f.section ?? 'Details') === section)
+function isVisible(f: LetterTypeField) {
+  const c = f.showIf
+  return !c || (state.value.fieldValues[c.field] ?? '') === c.equals
+}
+const fieldsIn = (section: string) =>
+  fields.value.filter((f) => (f.section ?? 'Details') === section && isVisible(f))
 
 // Seed defaults (and blanks so the keys are reactive) once.
 function seedDefaults() {

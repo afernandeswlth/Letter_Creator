@@ -86,6 +86,15 @@ NOTE = ('Note that the interest rate is generally 2% higher if you are in defaul
         'terms and conditions.')
 
 
+def loan_term_years(s):
+    """A bare number of years -> '30 Years' (or '1 Year'); anything already
+    containing words (e.g. '30 Years', '6 Months') is left unchanged."""
+    s = (s or '').strip()
+    if re.fullmatch(r'\d+', s):
+        return f"{s} {'Year' if s == '1' else 'Years'}"
+    return s
+
+
 def _draw_logo(canvas, path, x, y, w, h):
     if os.path.exists(path):
         canvas.drawImage(path, x, y, width=w, height=h, mask='auto')

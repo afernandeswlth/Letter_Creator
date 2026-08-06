@@ -38,6 +38,7 @@ export interface LetterTypeField {
   default?: string // pre-filled value (a 'date' field defaults to today when empty)
   options?: { value: string; label: string }[] // for type: 'select'
   section?: string // optional grouping heading in the form UI
+  showIf?: { field: string; equals: string } // only show when another field matches
 }
 
 export interface LetterType {
