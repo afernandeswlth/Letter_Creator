@@ -79,7 +79,7 @@ def letters_recent():
         limit = int(request.args.get('limit', '20'))
     except ValueError:
         limit = 20
-    return _json({'letters': store.recent_letters(min(max(limit, 1), 100))})
+    return _json({'letters': store.recent_letters(min(max(limit, 1), 500))})
 
 
 @app.get('/api/letters/file')

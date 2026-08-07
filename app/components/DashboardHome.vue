@@ -40,7 +40,7 @@ const THEME = {
 const typeOf = (id: LetterTypeId) => LETTER_TYPES[id]
 
 // Recent letters — real history from the store (Supabase, via /api/letters/recent).
-const { data: recent, pending, refresh } = useAsyncData('dashboard-recent', () => getRecentLetters(8), {
+const { data: recent, pending, refresh } = useAsyncData('dashboard-recent', () => getRecentLetters(500), {
   default: () => [],
 })
 
@@ -127,7 +127,10 @@ async function onDownload(id: string) {
     <!-- Recent Letters -->
     <section class="mt-8 rounded-2xl border border-slate-200 bg-white p-6">
       <div class="flex items-center justify-between">
-        <h2 class="text-base font-semibold text-slate-900">Recent Letters</h2>
+        <h2 class="text-base font-semibold text-slate-900">
+          Recent Letters
+          <span v-if="recent.length" class="ml-1.5 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">{{ recent.length }}</span>
+        </h2>
         <button
           type="button"
           class="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 transition hover:text-blue-700"
@@ -154,10 +157,10 @@ async function onDownload(id: string) {
         <p class="mt-0.5 text-xs text-slate-400">Every letter you download or draft will appear here.</p>
       </div>
 
-      <!-- Table -->
-      <div v-else class="mt-4 overflow-x-auto">
+      <!-- Table (scrolls when the history is long; header stays visible) -->
+      <div v-else class="mt-4 max-h-[32rem] overflow-y-auto overflow-x-auto">
         <table class="w-full text-left text-sm">
-          <thead>
+          <thead class="sticky top-0 z-10 bg-white">
             <tr class="border-b border-slate-200 text-[11px] uppercase tracking-wide text-slate-400">
               <th class="py-3 pr-4 font-medium">Letter Type</th>
               <th class="py-3 pr-4 font-medium">Customer</th>
