@@ -9,7 +9,7 @@ interface NavItem {
 // WLTH (lucide) icon names — see WIcon.vue.
 const nav: NavItem[] = [
   { label: 'Dashboard', to: '/', icon: 'house' },
-  { label: 'All Letters', to: '/letters', disabled: true, icon: 'file-text' },
+  { label: 'Recent Letters', to: '/recent', icon: 'clock' },
   { label: 'Templates', to: '/templates', icon: 'file-text' },
 ]
 
