@@ -2,7 +2,7 @@
 import type { DeliveryResult } from '~/types'
 
 const { state, back, requestRestart } = useLetterWizard()
-const { createEmailDraft, downloadZip } = useLetterApi()
+const { createEmailDraft, downloadZip, fetchPdf } = useLetterApi()
 
 const emails = reactive<Record<string, string>>({})
 const results = reactive<Record<string, DeliveryResult>>({}) // per member name
@@ -79,6 +79,18 @@ async function onCreateDrafts() {
   } finally {
     creatingDrafts.value = false
   }
+}
+
+// Build each party's PDF blob for the "Add to Drive" button (lazily, on click).
+async function driveFiles() {
+  const out: { name: string; blob: Blob }[] = []
+  for (let i = 0; i < state.value.rendered.length; i++) {
+    const p = state.value.rendered[i]!
+    const base = fileBaseFor(p.name)
+    const blob = await fetchPdf(state.value.files, state.value.brand, state.value.ddBsb, state.value.ddAccount, i, base)
+    out.push({ name: `${base}.pdf`, blob })
+  }
+  return out
 }
 
 async function onDownloadAll() {
@@ -162,6 +174,8 @@ async function onDownloadAll() {
         </svg>
         {{ zipping ? 'Preparing ZIP…' : 'Download All' }}
       </button>
+
+      <AddToDriveButton :files="driveFiles" :count="state.rendered.length" />
     </div>
     <p v-if="!allMemberEmailsValid" class="mt-2 text-xs text-slate-400">Enter a valid email for each member to create the drafts.</p>
     <p v-if="zipError" class="mt-2 text-xs text-red-600">{{ zipError }}</p>

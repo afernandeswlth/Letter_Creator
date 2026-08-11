@@ -197,6 +197,20 @@ export function useLetterApi() {
     return res.pages
   }
 
+  /** POST /api/forms/pdf — fetch a form letter's branded PDF as a Blob. */
+  async function fetchFormPdfBlob(
+    letterType: string,
+    brand: BrandId,
+    values: Record<string, string>,
+    filename: string,
+  ): Promise<Blob> {
+    return $fetch<Blob>('/api/forms/pdf', {
+      method: 'POST',
+      body: { letterType, brand: engineBrand(brand), values, filename },
+      responseType: 'blob',
+    })
+  }
+
   /** POST /api/forms/pdf — download a form letter's branded PDF. */
   async function downloadFormPdf(
     letterType: string,
@@ -204,11 +218,7 @@ export function useLetterApi() {
     values: Record<string, string>,
     filename: string,
   ): Promise<void> {
-    const blob = await $fetch<Blob>('/api/forms/pdf', {
-      method: 'POST',
-      body: { letterType, brand: engineBrand(brand), values, filename },
-      responseType: 'blob',
-    })
+    const blob = await fetchFormPdfBlob(letterType, brand, values, filename)
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -254,5 +264,5 @@ export function useLetterApi() {
     window.open(url, '_blank', 'noopener')
   }
 
-  return { parseFunderDocs, renderLetters, previewPages, fetchPdf, downloadPdf, downloadZip, createEmailDraft, parseFormSource, formPreview, downloadFormPdf, createFormEmailDraft, getRecentLetters, downloadStoredLetter }
+  return { parseFunderDocs, renderLetters, previewPages, fetchPdf, downloadPdf, downloadZip, createEmailDraft, parseFormSource, formPreview, downloadFormPdf, fetchFormPdfBlob, createFormEmailDraft, getRecentLetters, downloadStoredLetter }
 }

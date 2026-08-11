@@ -1,6 +1,13 @@
 <script setup lang="ts">
 const { state, currentType, formFilename, back, requestGoHome, themeClasses } = useLetterWizard()
-const { downloadFormPdf, createFormEmailDraft } = useLetterApi()
+const { downloadFormPdf, fetchFormPdfBlob, createFormEmailDraft } = useLetterApi()
+
+// Build the PDF blob(s) for the "Add to Drive" button (lazily, on click).
+async function driveFiles() {
+  if (!currentType.value) return []
+  const blob = await fetchFormPdfBlob(currentType.value.engine, state.value.brand, state.value.fieldValues, formFilename.value)
+  return [{ name: `${formFilename.value}.pdf`, blob }]
+}
 
 const downloading = ref(false)
 
@@ -66,22 +73,25 @@ async function onCreateDraft() {
     <p class="mt-1 text-sm text-slate-500">Download the branded letter as a PDF{{ emailCfg ? ', or email it to the builder.' : '.' }}</p>
 
     <!-- Download -->
-    <div class="mt-6 flex items-center justify-between rounded-xl border border-slate-200 p-4">
+    <div class="mt-6 flex flex-col gap-3 rounded-xl border border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <p class="text-sm font-medium text-slate-900">{{ formFilename }}.pdf</p>
         <p class="text-xs text-slate-500">The branded {{ currentType?.label }}.</p>
       </div>
-      <button
-        type="button"
-        class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-40"
-        :disabled="downloading"
-        @click="onDownload"
-      >
-        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
-        </svg>
-        {{ downloading ? 'Preparing…' : 'Download PDF' }}
-      </button>
+      <div class="flex flex-wrap items-center gap-3">
+        <AddToDriveButton :files="driveFiles" :count="1" />
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-40"
+          :disabled="downloading"
+          @click="onDownload"
+        >
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
+          </svg>
+          {{ downloading ? 'Preparing…' : 'Download PDF' }}
+        </button>
+      </div>
     </div>
 
     <!-- Email the builder (opt-in per letter type) -->
