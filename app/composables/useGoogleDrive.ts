@@ -141,6 +141,20 @@ export function useGoogleDrive() {
     return j.files ?? []
   }
 
+  /** Create a new sub-folder inside `parentId` and return it. */
+  async function createFolder(name: string, parentId: string): Promise<DriveFolder> {
+    const res = await fetch(`${API}/files?supportsAllDrives=true&fields=id%2Cname`, {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, mimeType: FOLDER_MIME, parents: [parentId] }),
+    })
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      throw new Error(`Could not create folder (${res.status}). ${text.slice(0, 160)}`)
+    }
+    return res.json()
+  }
+
   async function uploadFile(folderId: string, file: DriveFile) {
     const metadata = { name: file.name, parents: [folderId], mimeType: 'application/pdf' }
     const form = new FormData()
@@ -179,6 +193,7 @@ export function useGoogleDrive() {
     listFolders,
     listSharedWithMe,
     searchFolders,
+    createFolder,
     uploadFiles,
   }
 }

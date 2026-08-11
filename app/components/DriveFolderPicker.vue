@@ -16,7 +16,7 @@ const emit = defineEmits<{
   (e: 'uploaded', payload: { folderName: string; count: number }): void
 }>()
 
-const { authorize, listSharedDrives, listFolders, listSharedWithMe, searchFolders, uploadFiles } = useGoogleDrive()
+const { authorize, listSharedDrives, listFolders, listSharedWithMe, searchFolders, createFolder, uploadFiles } = useGoogleDrive()
 
 type Kind = 'roots' | 'myDrive' | 'sharedWithMe' | 'sharedDrive' | 'folder'
 interface Node { id: string; name: string; kind: Kind; driveId?: string }
@@ -32,6 +32,11 @@ const progress = ref('')
 const query = ref('')
 const inSearch = ref(false)
 
+// Create-a-folder state.
+const creating = ref(false)
+const newName = ref('')
+const savingFolder = ref(false)
+
 const current = computed<Node | null>(() => stack.value[stack.value.length - 1] ?? null)
 // You can drop files into a real folder, My Drive, or a Shared Drive root —
 // but not the top-level category list or the "Shared with me" grouping.
@@ -43,6 +48,7 @@ async function runSearch() {
   const q = query.value.trim()
   if (!q) return clearSearch()
   inSearch.value = true
+  creating.value = false
   loading.value = true
   error.value = ''
   try {
@@ -73,6 +79,7 @@ function openResult(node: Node) {
 async function loadRoots() {
   loading.value = true
   error.value = ''
+  creating.value = false
   try {
     const drives = await listSharedDrives()
     items.value = [
@@ -90,6 +97,7 @@ async function loadRoots() {
 async function loadChildren(node: Node) {
   loading.value = true
   error.value = ''
+  creating.value = false
   try {
     let folders: DriveFolder[] = []
     if (node.kind === 'myDrive') folders = await listFolders('root')
@@ -120,6 +128,23 @@ function goTo(index: number) {
   const c = current.value
   if (c) loadChildren(c)
   else loadRoots()
+}
+
+async function createNewFolder() {
+  const name = newName.value.trim()
+  if (!name || !current.value || savingFolder.value) return
+  savingFolder.value = true
+  error.value = ''
+  try {
+    const folder = await createFolder(name, current.value.id)
+    newName.value = ''
+    // Jump into the new folder so it's the upload target, ready to go.
+    open({ id: folder.id, name: folder.name, kind: 'folder', driveId: current.value.driveId })
+  } catch (e) {
+    error.value = (e as Error).message
+  } finally {
+    savingFolder.value = false
+  }
 }
 
 async function uploadHere() {
@@ -241,6 +266,44 @@ onMounted(async () => {
             </button>
           </li>
         </ul>
+      </div>
+
+      <!-- Create a new folder inside the current one -->
+      <div v-if="canUploadHere && !inSearch" class="border-t border-slate-100 px-5 py-2.5">
+        <button
+          v-if="!creating"
+          type="button"
+          class="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 transition hover:text-blue-700"
+          @click="creating = true; newName = ''"
+        >
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+          New folder
+        </button>
+        <div v-else class="flex items-center gap-2">
+          <input
+            v-model="newName"
+            type="text"
+            :placeholder="`New folder in ${current?.name}`"
+            class="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            @keyup.enter="createNewFolder"
+          />
+          <button
+            type="button"
+            class="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-40"
+            :disabled="!newName.trim() || savingFolder"
+            @click="createNewFolder"
+          >
+            {{ savingFolder ? 'Creating…' : 'Create' }}
+          </button>
+          <button
+            type="button"
+            class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-40"
+            :disabled="savingFolder"
+            @click="creating = false"
+          >
+            Cancel
+          </button>
+        </div>
       </div>
 
       <!-- Footer -->
