@@ -11,6 +11,14 @@ const yesNo = [
   { value: 'no' as const, label: 'No' },
 ]
 
+// The offset / linking questions (and the linking email + nomination form) only
+// apply to SMSF/Trust loans. A Standard loan has no SMSF entity, so we hide them
+// and force the standard short template (offset treated as linked → no block/form).
+const isSmsf = computed(() => (state.value.parse?.loanType ?? 'Standard') !== 'Standard')
+watchEffect(() => {
+  if (!isSmsf.value) state.value.offsetLinked = 'yes'
+})
+
 // Picking "no offset account" implies the account isn't linked (drives the
 // email template); picking "yes" makes the borrower answer the linked question.
 function setHasOffset(v: 'yes' | 'no') {
@@ -25,7 +33,7 @@ const accountOk = computed(
   () => state.value.noDirectDebit || state.value.ddAccount.trim().length >= 5,
 )
 const offsetOk = computed(
-  () => state.value.hasOffset === 'no' || (state.value.hasOffset === 'yes' && state.value.offsetLinked !== null),
+  () => !isSmsf.value || state.value.hasOffset === 'no' || (state.value.hasOffset === 'yes' && state.value.offsetLinked !== null),
 )
 const isValid = computed(() => bsbOk.value && accountOk.value && offsetOk.value)
 
@@ -124,8 +132,8 @@ async function onNext() {
       </div>
     </div>
 
-    <!-- Offset account (mandatory — drives the email template) -->
-    <div class="mt-6">
+    <!-- Offset account (SMSF/Trust only — drives the email template) -->
+    <div v-if="isSmsf" class="mt-6">
       <p class="text-sm font-medium text-slate-700">
         Offset Account? <span class="text-red-500">*</span>
       </p>

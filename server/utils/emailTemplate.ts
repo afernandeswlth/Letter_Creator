@@ -56,12 +56,15 @@ export function welcomeEmail(input: EmailInput): { subject: string; html: string
        confirmation of your ${brand.loanDetails} including loan account number, loan repayment date and
        direct debit and credit information.</p>`
 
-  // Long body (offset = no): linking the SMSF Cash Management Account.
+  // Long body (offset = no): linking an account to the Offset Account. SMSF
+  // wording is only used for an SMSF/Trust loan — a Standard loan has no SMSF
+  // entity, so it must not mention SMSF.
+  const smsf = input.isTrust
   const linkingBlock = `
-    <p>We note that you have not yet linked your SMSF Cash Management Account to your Offset Account.</p>
+    <p>We note that you have not yet linked ${smsf ? 'your SMSF Cash Management Account' : 'an account'} to your Offset Account.</p>
     <p>Linking an account enables the Redraw function, allowing you to transfer funds from your offset
        account directly to your linked external account. This is the only way to withdraw funds from your
-       SMSF Offset Account other than BPAY, and it's possible to transfer up to $250,000 at a time!</p>
+       ${smsf ? 'SMSF Offset Account' : 'Offset Account'} other than BPAY, and it's possible to transfer up to $250,000 at a time!</p>
     <p>To link an external account with your offset account, simply complete and return the attached
        Linked Account Nomination Form.</p>
     <p>To increase your Redraw limits past the default, please contact us on 13 95 84. 2 Factor
@@ -75,11 +78,13 @@ export function welcomeEmail(input: EmailInput): { subject: string; html: string
       <li>All borrowers/guarantors will need to sign the forms. If signing digitally, please include the
           electronic certificate of completion/audit trail.</li>
       <li>Return the completed form/s by replying to this email, along with a bank account statement
-          (or bank letter) for your nominated account. This statement must clearly show the SMSF name,
+          (or bank letter) for your nominated account. This statement must clearly show the ${smsf ? 'SMSF name' : 'account name'},
           bank account details, and the bank's logo. It should be no older than six months.</li>
     </ul>`
 
-  const contact = input.offset === 'no' ? brand.contactLong : brand.contactShort
+  // Standard loans (no SMSF entity) use the clean contact line, same as the
+  // linking email; only the SMSF "offset linked" email keeps the short variant.
+  const contact = input.offset === 'no' || !input.isTrust ? brand.contactLong : brand.contactShort
   const body = `
     ${intro}
     ${input.offset === 'no' ? linkingBlock : ''}

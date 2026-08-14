@@ -451,11 +451,14 @@ def welcome_email(brand_id, borrower_name, offset, is_trust, trust_name, account
        confirmation of your {brand['loan_details']} including loan account number, loan repayment date and
        direct debit and credit information.</p>"""
 
-    linking_block = """
-    <p>We note that you have not yet linked your SMSF Cash Management Account to your Offset Account.</p>
+    # SMSF wording only for an SMSF/Trust loan — a Standard loan has no SMSF
+    # entity, so it must not mention SMSF.
+    smsf = is_trust
+    linking_block = f"""
+    <p>We note that you have not yet linked {'your SMSF Cash Management Account' if smsf else 'an account'} to your Offset Account.</p>
     <p>Linking an account enables the Redraw function, allowing you to transfer funds from your offset
        account directly to your linked external account. This is the only way to withdraw funds from your
-       SMSF Offset Account other than BPAY, and it's possible to transfer up to $250,000 at a time!</p>
+       {'SMSF Offset Account' if smsf else 'Offset Account'} other than BPAY, and it's possible to transfer up to $250,000 at a time!</p>
     <p>To link an external account with your offset account, simply complete and return the attached
        Linked Account Nomination Form.</p>
     <p>To increase your Redraw limits past the default, please contact us on 13 95 84. 2 Factor
@@ -469,11 +472,13 @@ def welcome_email(brand_id, borrower_name, offset, is_trust, trust_name, account
       <li>All borrowers/guarantors will need to sign the forms. If signing digitally, please include the
           electronic certificate of completion/audit trail.</li>
       <li>Return the completed form/s by replying to this email, along with a bank account statement
-          (or bank letter) for your nominated account. This statement must clearly show the SMSF name,
+          (or bank letter) for your nominated account. This statement must clearly show the {'SMSF name' if smsf else 'account name'},
           bank account details, and the bank's logo. It should be no older than six months.</li>
     </ul>"""
 
-    contact = brand['contact_long'] if offset == 'no' else brand['contact_short']
+    # Standard loans (no SMSF entity) use the clean contact line, same as the
+    # linking email; only the SMSF "offset linked" email keeps the short variant.
+    contact = brand['contact_long'] if (offset == 'no' or not is_trust) else brand['contact_short']
     body = f"""
     {intro}
     {linking_block if offset == 'no' else ''}
