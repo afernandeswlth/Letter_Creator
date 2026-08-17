@@ -227,9 +227,12 @@ def email():
     if not webhook:
         return _json({'error': 'Email is not configured. Set ZAPIER_EMAIL_WEBHOOK_URL.'}, 500)
 
+    cc = _form('cc').strip()
     try:
         import requests
         data = {'to': to, 'subject': subject, 'body': html, 'filename': attachments[0][0]}
+        if cc:
+            data['cc'] = cc
         files = {}
         for i, (fn, content) in enumerate(attachments):
             key = 'attachment' if i == 0 else f'attachment{i + 1}'
@@ -246,7 +249,7 @@ def email():
         'reference': _form('accountNumber') or None,
     }, pdf_bytes, filename, 'Draft')
     return _json({'ok': True, 'via': 'zapier',
-                  'link': 'https://mail.google.com/mail/u/0/#drafts', 'to': to})
+                  'link': 'https://mail.google.com/mail/u/0/#drafts', 'to': to, 'cc': cc or None})
 
 
 # --------------------------------------------------------------------------

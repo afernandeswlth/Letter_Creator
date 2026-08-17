@@ -29,6 +29,7 @@ export default defineEventHandler(async (event) => {
     parts.find((p) => p.name === n && !p.filename)?.data.toString('utf-8')
 
   const to = field('to')?.trim()
+  const cc = field('cc')?.trim() || undefined
   if (!files.length) throw createError({ statusCode: 400, statusMessage: 'No .docx files found' })
   if (!to) throw createError({ statusCode: 400, statusMessage: 'Missing borrower email address' })
 
@@ -78,14 +79,14 @@ export default defineEventHandler(async (event) => {
     )
   try {
     if (zapierEmailConfig().configured) {
-      await createDraftViaZapier({ to, subject, html, attachments })
+      await createDraftViaZapier({ to, cc, subject, html, attachments })
       await record()
-      return { ok: true, via: 'zapier', link: gmailLink, to }
+      return { ok: true, via: 'zapier', link: gmailLink, to, cc: cc ?? null }
     }
     if (gmailConfig().configured) {
-      const draft = await createGmailDraft({ to, subject, html, attachments })
+      const draft = await createGmailDraft({ to, cc, subject, html, attachments })
       await record()
-      return { ok: true, via: 'gmail', ...draft, to }
+      return { ok: true, via: 'gmail', ...draft, to, cc: cc ?? null }
     }
     throw new Error(
       'Email is not configured. Set ZAPIER_EMAIL_WEBHOOK_URL, or the Gmail service account + GMAIL_SENDER.',

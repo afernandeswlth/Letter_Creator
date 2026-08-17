@@ -48,6 +48,13 @@ const allMemberEmailsValid = computed(
   () => members.value.length > 0 && members.value.every(({ p }) => emailRe.test(emails[p.name] ?? '')),
 )
 
+// Optional broker Cc — applied to every borrower's draft. Allows several
+// addresses separated by commas/semicolons.
+const brokerCc = ref('')
+const brokerCcClean = computed(() =>
+  brokerCc.value.split(/[,;]/).map((e) => e.trim()).filter((e) => emailRe.test(e)).join(', '),
+)
+
 async function onCreateDrafts() {
   if (!allMemberEmailsValid.value || creatingDrafts.value) return
   creatingDrafts.value = true
@@ -70,6 +77,7 @@ async function onCreateDrafts() {
             trustName: trustName.value,
             accountNumber: accountNumber.value,
           },
+          brokerCcClean.value || undefined,
         )
       } catch (e) {
         const err = e as { data?: { statusMessage?: string }; statusMessage?: string; message?: string }
@@ -147,6 +155,21 @@ async function onDownloadAll() {
         </div>
         <span v-else class="text-xs text-slate-400">No email — included in the ZIP</span>
       </div>
+    </div>
+
+    <!-- Broker Cc (optional) -->
+    <div class="mt-5 sm:w-96">
+      <label for="brokerCc" class="block text-sm font-medium text-slate-700">
+        Broker email <span class="font-normal text-slate-400">(Cc, optional)</span>
+      </label>
+      <input
+        id="brokerCc"
+        v-model="brokerCc"
+        type="text"
+        placeholder="broker@example.com"
+        class="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+      />
+      <p class="mt-1 text-xs text-slate-400">CC’d on every borrower’s draft. Separate multiple addresses with commas.</p>
     </div>
 
     <!-- Actions -->

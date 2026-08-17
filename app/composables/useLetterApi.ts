@@ -76,8 +76,9 @@ export function useLetterApi() {
     name: string,
     filename: string,
     opts: { offset: 'yes' | 'no'; isTrust: boolean; trustName: string; accountNumber: string },
+    cc?: string,
   ): Promise<DeliveryResult> {
-    const res = await $fetch<{ link: string; to: string; via: string }>('/api/letters/email', {
+    const res = await $fetch<{ link: string; to: string; cc?: string; via: string }>('/api/letters/email', {
       method: 'POST',
       body: formData(files, {
         brand: brand === 'mortgage-mart' ? 'mma' : 'wlth',
@@ -91,15 +92,17 @@ export function useLetterApi() {
         isTrust: String(opts.isTrust),
         trustName: opts.trustName,
         accountNumber: opts.accountNumber,
+        ...(cc ? { cc } : {}),
       }),
     })
     const withForm = opts.offset === 'no' ? ' (with nomination form)' : ''
+    const ccNote = res.cc ? `, Cc ${res.cc}` : ''
     return {
       ok: true,
       message:
         res.via === 'zapier'
-          ? `Sent to Zapier for ${res.to}${withForm} — check hello@wlth.com Drafts.`
-          : `Draft created for ${res.to}${withForm}.`,
+          ? `Sent to Zapier for ${res.to}${ccNote}${withForm} — check hello@wlth.com Drafts.`
+          : `Draft created for ${res.to}${ccNote}${withForm}.`,
       link: res.link,
     }
   }
