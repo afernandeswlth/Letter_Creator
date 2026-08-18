@@ -146,6 +146,25 @@ export function useLetterApi() {
     return $fetch<Blob>('/api/letters/pdf', { method: 'POST', body: fd, responseType: 'blob' })
   }
 
+  /** POST /api/letters/docx — one party's Welcome letter as an editable Word doc. */
+  async function fetchWelcomeDocx(
+    files: File[],
+    brand: BrandId,
+    ddBsb: string,
+    ddAccount: string,
+    partyIndex: number,
+    name = 'Welcome Letter',
+  ): Promise<Blob> {
+    const fd = formData(files, {
+      brand: brand === 'mortgage-mart' ? 'mma' : 'wlth',
+      ddBsb,
+      ddAccount,
+      partyIndex: String(partyIndex),
+      name,
+    })
+    return $fetch<Blob>('/api/letters/docx', { method: 'POST', body: fd, responseType: 'blob' })
+  }
+
   /** Download the branded PDF for one party. */
   async function downloadPdf(
     files: File[],
@@ -232,6 +251,38 @@ export function useLetterApi() {
     URL.revokeObjectURL(url)
   }
 
+  /** POST /api/forms/docx — fetch a form letter's editable Word doc as a Blob. */
+  async function fetchFormDocxBlob(
+    letterType: string,
+    brand: BrandId,
+    values: Record<string, string>,
+    filename: string,
+  ): Promise<Blob> {
+    return $fetch<Blob>('/api/forms/docx', {
+      method: 'POST',
+      body: { letterType, brand: engineBrand(brand), values, filename },
+      responseType: 'blob',
+    })
+  }
+
+  /** POST /api/forms/docx — download a form letter as an editable Word doc. */
+  async function downloadFormDocx(
+    letterType: string,
+    brand: BrandId,
+    values: Record<string, string>,
+    filename: string,
+  ): Promise<void> {
+    const blob = await fetchFormDocxBlob(letterType, brand, values, filename)
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${filename}.docx`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+
   /** POST /api/forms/email — create a Gmail draft for a form letter. */
   async function createFormEmailDraft(
     letterType: string,
@@ -267,5 +318,5 @@ export function useLetterApi() {
     window.open(url, '_blank', 'noopener')
   }
 
-  return { parseFunderDocs, renderLetters, previewPages, fetchPdf, downloadPdf, downloadZip, createEmailDraft, parseFormSource, formPreview, downloadFormPdf, fetchFormPdfBlob, createFormEmailDraft, getRecentLetters, downloadStoredLetter }
+  return { parseFunderDocs, renderLetters, previewPages, fetchPdf, fetchWelcomeDocx, downloadPdf, downloadZip, createEmailDraft, parseFormSource, formPreview, downloadFormPdf, fetchFormPdfBlob, downloadFormDocx, fetchFormDocxBlob, createFormEmailDraft, getRecentLetters, downloadStoredLetter }
 }

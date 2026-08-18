@@ -1,15 +1,22 @@
 <script setup lang="ts">
 const { state, currentType, formFilename, back, requestGoHome, themeClasses } = useLetterWizard()
-const { downloadFormPdf, fetchFormPdfBlob, createFormEmailDraft } = useLetterApi()
+const { downloadFormPdf, fetchFormPdfBlob, downloadFormDocx, fetchFormDocxBlob, createFormEmailDraft } = useLetterApi()
 
-// Build the PDF blob(s) for the "Add to Drive" button (lazily, on click).
+// Build the PDF + Word blobs for the "Add to Drive" button (lazily, on click).
 async function driveFiles() {
   if (!currentType.value) return []
-  const blob = await fetchFormPdfBlob(currentType.value.engine, state.value.brand, state.value.fieldValues, formFilename.value)
-  return [{ name: `${formFilename.value}.pdf`, blob }]
+  const [pdf, docx] = await Promise.all([
+    fetchFormPdfBlob(currentType.value.engine, state.value.brand, state.value.fieldValues, formFilename.value),
+    fetchFormDocxBlob(currentType.value.engine, state.value.brand, state.value.fieldValues, formFilename.value),
+  ])
+  return [
+    { name: `${formFilename.value}.pdf`, blob: pdf },
+    { name: `${formFilename.value}.docx`, blob: docx },
+  ]
 }
 
 const downloading = ref(false)
+const downloadingDocx = ref(false)
 
 async function onDownload() {
   if (!currentType.value) return
@@ -18,6 +25,16 @@ async function onDownload() {
     await downloadFormPdf(currentType.value.engine, state.value.brand, state.value.fieldValues, formFilename.value)
   } finally {
     downloading.value = false
+  }
+}
+
+async function onDownloadDocx() {
+  if (!currentType.value) return
+  downloadingDocx.value = true
+  try {
+    await downloadFormDocx(currentType.value.engine, state.value.brand, state.value.fieldValues, formFilename.value)
+  } finally {
+    downloadingDocx.value = false
   }
 }
 
@@ -79,7 +96,18 @@ async function onCreateDraft() {
         <p class="text-xs text-slate-500">The branded {{ currentType?.label }}.</p>
       </div>
       <div class="flex flex-wrap items-center gap-3">
-        <AddToDriveButton :files="driveFiles" :count="1" />
+        <AddToDriveButton :files="driveFiles" :count="2" />
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-40"
+          :disabled="downloadingDocx"
+          @click="onDownloadDocx"
+        >
+          <svg class="h-4 w-4 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><path d="M14 2v6h6M8 13h8M8 17h5" />
+          </svg>
+          {{ downloadingDocx ? 'Preparing…' : 'Download Word' }}
+        </button>
         <button
           type="button"
           class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-40"

@@ -26,6 +26,7 @@ sys.path.insert(0, os.path.join(ROOT, 'engine'))
 
 import cli          # noqa: E402  group/cmd_parse/cmd_render/_build_party_pdf
 import pdf_letter   # noqa: E402  build_pdf
+import docx_letter  # noqa: E402  editable Word (.docx) versions
 import store        # noqa: E402  letter-history persistence (Supabase)
 
 app = Flask(__name__)
@@ -133,6 +134,23 @@ def pdf():
         return _json({'error': str(e)}, 500)
 
 
+@app.post('/api/letters/docx')
+def letters_docx():
+    paths = _save_uploads()
+    if not paths:
+        return _json({'error': 'No .docx files found'}, 400)
+    try:
+        data = cli._build_party_docx(
+            _form('brand', 'wlth'), _form('ddBsb'), _form('ddAccount'),
+            int(_form('partyIndex', '0') or 0), paths)
+        name = (_form('name', 'Welcome Letter') or 'Welcome Letter').strip()
+        return Response(data, mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document', headers={
+            'Content-Disposition': f'attachment; filename="{name}.docx"',
+        })
+    except Exception as e:  # noqa: BLE001
+        return _json({'error': str(e)}, 500)
+
+
 @app.post('/api/letters/preview')
 def preview():
     paths = _save_uploads()
@@ -172,6 +190,8 @@ def zip_letters():
                 name = re.sub(r'^(mr|mrs|ms|miss|dr)\.?\s+', '', d['recipient_name'], flags=re.I)
                 fname = f'{label} Welcome Letter - {name}'
                 z.writestr(f'{fname}.pdf', data)
+                z.writestr(f'{fname}.docx', docx_letter.build_welcome_docx(
+                    d, brand, dd_bsb, dd_account, smsf_number=None if d['is_entity'] else smsf_number))
                 # Record each party's letter in the history (best-effort).
                 store.save_letter({
                     'letter_type': 'welcome', 'type_label': store.LABELS['welcome'],
@@ -285,6 +305,22 @@ def form_pdf():
             store.save_letter(store.form_meta(letter_type, brand, values), pdf_bytes, name, 'Completed')
         return Response(pdf_bytes, mimetype='application/pdf', headers={
             'Content-Disposition': f'attachment; filename="{name}.pdf"',
+        })
+    except Exception as e:  # noqa: BLE001
+        return _json({'error': str(e)}, 500)
+
+
+@app.post('/api/forms/docx')
+def form_docx():
+    data = request.get_json(force=True, silent=True) or {}
+    letter_type = data.get('letterType', '')
+    brand = data.get('brand', 'wlth')
+    values = data.get('values') or {}
+    try:
+        docx_bytes = cli.build_form_docx(letter_type, brand, values)
+        name = (data.get('filename') or 'Letter').strip()
+        return Response(docx_bytes, mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document', headers={
+            'Content-Disposition': f'attachment; filename="{name}.docx"',
         })
     except Exception as e:  # noqa: BLE001
         return _json({'error': str(e)}, 500)

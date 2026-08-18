@@ -107,6 +107,26 @@ export async function runEnginePdf(
   })
 }
 
+/** Render one party's Welcome letter as an editable Word (.docx); returns bytes. */
+export async function runEngineDocx(
+  files: UploadedFile[],
+  opts: { brand: string; ddBsb: string; ddAccount: string; partyIndex: number },
+): Promise<Buffer> {
+  return withFiles(files, (paths) => {
+    const args = [ENGINE, 'docx', opts.brand, opts.ddBsb, opts.ddAccount, String(opts.partyIndex), ...paths]
+    return new Promise<Buffer>((resolve, reject) => {
+      execFile(
+        'python3', args,
+        { cwd: CWD(), encoding: 'buffer', maxBuffer: 32 * 1024 * 1024 },
+        (err, out, errOut) => {
+          if (err) reject(new Error(errOut?.toString() || err.message))
+          else resolve(out as Buffer)
+        },
+      )
+    })
+  })
+}
+
 /** Extract field values from an uploaded source doc (e.g. a Schedule 4). */
 export async function runEngineFormParse(
   letterType: string,
@@ -131,6 +151,25 @@ export async function runEngineFormPdf(
   values: Record<string, unknown>,
 ): Promise<Buffer> {
   const args = [ENGINE, 'form-pdf', letterType, brand, JSON.stringify(values)]
+  return new Promise<Buffer>((resolve, reject) => {
+    execFile(
+      'python3', args,
+      { cwd: CWD(), encoding: 'buffer', maxBuffer: 32 * 1024 * 1024 },
+      (err, out, errOut) => {
+        if (err) reject(new Error(errOut?.toString() || err.message))
+        else resolve(out as Buffer)
+      },
+    )
+  })
+}
+
+/** Render a form-driven letter type to an editable Word (.docx); returns bytes. */
+export async function runEngineFormDocx(
+  letterType: string,
+  brand: string,
+  values: Record<string, unknown>,
+): Promise<Buffer> {
+  const args = [ENGINE, 'form-docx', letterType, brand, JSON.stringify(values)]
   return new Promise<Buffer>((resolve, reject) => {
     execFile(
       'python3', args,

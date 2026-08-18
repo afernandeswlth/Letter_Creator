@@ -95,6 +95,13 @@ def build_form_pdf(letter_type, brand, values):
     return fn(brand, values)
 
 
+def build_form_docx(letter_type, brand, values):
+    """Render a form-driven letter type to an editable Word (.docx) — the branded
+    template filled with the same values as the PDF."""
+    import docx_letter
+    return docx_letter.build_form_docx(letter_type, brand, values)
+
+
 def parse_form_source(letter_type, brand, path):
     """Extract field values from an uploaded source doc (e.g. a Schedule 4)."""
     if letter_type == 'approval':
@@ -111,6 +118,12 @@ def cmd_form_parse(letter_type, brand, path):
 def cmd_form_pdf(letter_type, brand, values_json):
     import sys as _sys
     _sys.stdout.buffer.write(build_form_pdf(letter_type, brand, json.loads(values_json)))
+    return 0
+
+
+def cmd_form_docx(letter_type, brand, values_json):
+    import sys as _sys
+    _sys.stdout.buffer.write(build_form_docx(letter_type, brand, json.loads(values_json)))
     return 0
 
 
@@ -141,6 +154,21 @@ def cmd_pdf(brand, dd_bsb, dd_account, party_index, paths):
     return 0
 
 
+def _build_party_docx(brand, dd_bsb, dd_account, party_index, paths):
+    import docx_letter
+    docs, _loan_type, smsf_number = group(paths)
+    _, d = docs[int(party_index)]
+    return docx_letter.build_welcome_docx(
+        d, brand, dd_bsb, dd_account, smsf_number=None if d['is_entity'] else smsf_number)
+
+
+def cmd_docx(brand, dd_bsb, dd_account, party_index, paths):
+    """Write one party's Welcome letter as an editable Word doc to stdout."""
+    import sys as _sys
+    _sys.stdout.buffer.write(_build_party_docx(brand, dd_bsb, dd_account, party_index, paths))
+    return 0
+
+
 def cmd_zip(brand, dd_bsb, dd_account, paths):
     """Build every party's PDF and write a ZIP of them all to stdout."""
     import io
@@ -148,15 +176,18 @@ def cmd_zip(brand, dd_bsb, dd_account, paths):
     import sys as _sys
     import zipfile
     from pdf_letter import build_pdf
+    import docx_letter
     docs, _loan_type, smsf_number = group(paths)
     label = 'MMA' if brand == 'mma' else 'WLTH'
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as z:
         for _, d in docs:
-            pdf = build_pdf(d, brand, dd_bsb, dd_account,
-                            smsf_number=None if d['is_entity'] else smsf_number)
+            smsf = None if d['is_entity'] else smsf_number
+            pdf = build_pdf(d, brand, dd_bsb, dd_account, smsf_number=smsf)
+            docx_bytes = docx_letter.build_welcome_docx(d, brand, dd_bsb, dd_account, smsf_number=smsf)
             name = re.sub(r'^(mr|mrs|ms|miss|dr)\.?\s+', '', d['recipient_name'], flags=re.I)
             z.writestr(f'{label} Welcome Letter - {name}.pdf', pdf)
+            z.writestr(f'{label} Welcome Letter - {name}.docx', docx_bytes)
     _sys.stdout.buffer.write(buf.getvalue())
     return 0
 
@@ -183,6 +214,9 @@ def main(argv):
     if cmd == 'pdf':
         brand, dd_bsb, dd_account, party_index, *paths = rest
         return cmd_pdf(brand, dd_bsb, dd_account, party_index, paths)
+    if cmd == 'docx':
+        brand, dd_bsb, dd_account, party_index, *paths = rest
+        return cmd_docx(brand, dd_bsb, dd_account, party_index, paths)
     if cmd == 'preview':
         brand, dd_bsb, dd_account, party_index, *paths = rest
         return cmd_preview(brand, dd_bsb, dd_account, party_index, paths)
@@ -192,6 +226,9 @@ def main(argv):
     if cmd == 'form-pdf':
         letter_type, brand, values_json = rest
         return cmd_form_pdf(letter_type, brand, values_json)
+    if cmd == 'form-docx':
+        letter_type, brand, values_json = rest
+        return cmd_form_docx(letter_type, brand, values_json)
     if cmd == 'form-preview':
         letter_type, brand, values_json = rest
         return cmd_form_preview(letter_type, brand, values_json)

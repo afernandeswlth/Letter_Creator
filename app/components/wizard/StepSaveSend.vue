@@ -2,7 +2,7 @@
 import type { DeliveryResult } from '~/types'
 
 const { state, back, requestRestart } = useLetterWizard()
-const { createEmailDraft, downloadZip, fetchPdf } = useLetterApi()
+const { createEmailDraft, downloadZip, fetchPdf, fetchWelcomeDocx } = useLetterApi()
 
 const emails = reactive<Record<string, string>>({})
 const results = reactive<Record<string, DeliveryResult>>({}) // per member name
@@ -91,14 +91,17 @@ async function onCreateDrafts() {
   }
 }
 
-// Build each party's PDF blob for the "Add to Drive" button (lazily, on click).
+// Build each party's PDF + Word blobs for the "Add to Drive" button (on click).
 async function driveFiles() {
   const out: { name: string; blob: Blob }[] = []
   for (let i = 0; i < state.value.rendered.length; i++) {
     const p = state.value.rendered[i]!
     const base = fileBaseFor(p.name)
-    const blob = await fetchPdf(state.value.files, state.value.brand, state.value.ddBsb, state.value.ddAccount, i, base)
-    out.push({ name: `${base}.pdf`, blob })
+    const [pdf, docx] = await Promise.all([
+      fetchPdf(state.value.files, state.value.brand, state.value.ddBsb, state.value.ddAccount, i, base),
+      fetchWelcomeDocx(state.value.files, state.value.brand, state.value.ddBsb, state.value.ddAccount, i, base),
+    ])
+    out.push({ name: `${base}.pdf`, blob: pdf }, { name: `${base}.docx`, blob: docx })
   }
   return out
 }
@@ -129,7 +132,7 @@ async function onDownloadAll() {
       Enter each member's email, then create the draft emails (letter attached)
       in your <span class="font-medium text-slate-700">hello inbox</span>.
       <template v-if="offset === 'no'">Since the offset account isn't linked, the Linked Account Nomination Form is attached too.</template>
-      You can also download all the letters as a ZIP.
+      You can also download all the letters (PDF + Word) as a ZIP, or add them to Google Drive.
     </p>
 
     <div class="mt-6 space-y-3">
