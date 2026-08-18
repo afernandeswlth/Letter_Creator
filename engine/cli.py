@@ -169,8 +169,8 @@ def cmd_docx(brand, dd_bsb, dd_account, party_index, paths):
     return 0
 
 
-def cmd_zip(brand, dd_bsb, dd_account, paths):
-    """Build every party's PDF and write a ZIP of them all to stdout."""
+def cmd_zip(brand, dd_bsb, dd_account, paths, fmt='both'):
+    """Build every party's letter and write a ZIP to stdout. fmt = pdf|docx|both."""
     import io
     import re
     import sys as _sys
@@ -183,11 +183,12 @@ def cmd_zip(brand, dd_bsb, dd_account, paths):
     with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as z:
         for _, d in docs:
             smsf = None if d['is_entity'] else smsf_number
-            pdf = build_pdf(d, brand, dd_bsb, dd_account, smsf_number=smsf)
-            docx_bytes = docx_letter.build_welcome_docx(d, brand, dd_bsb, dd_account, smsf_number=smsf)
             name = re.sub(r'^(mr|mrs|ms|miss|dr)\.?\s+', '', d['recipient_name'], flags=re.I)
-            z.writestr(f'{label} Welcome Letter - {name}.pdf', pdf)
-            z.writestr(f'{label} Welcome Letter - {name}.docx', docx_bytes)
+            base = f'{label} Welcome Letter - {name}'
+            if fmt in ('pdf', 'both'):
+                z.writestr(f'{base}.pdf', build_pdf(d, brand, dd_bsb, dd_account, smsf_number=smsf))
+            if fmt in ('docx', 'both'):
+                z.writestr(f'{base}.docx', docx_letter.build_welcome_docx(d, brand, dd_bsb, dd_account, smsf_number=smsf))
     _sys.stdout.buffer.write(buf.getvalue())
     return 0
 
@@ -221,8 +222,8 @@ def main(argv):
         brand, dd_bsb, dd_account, party_index, *paths = rest
         return cmd_preview(brand, dd_bsb, dd_account, party_index, paths)
     if cmd == 'zip':
-        brand, dd_bsb, dd_account, *paths = rest
-        return cmd_zip(brand, dd_bsb, dd_account, paths)
+        brand, dd_bsb, dd_account, fmt, *paths = rest
+        return cmd_zip(brand, dd_bsb, dd_account, paths, fmt)
     if cmd == 'form-pdf':
         letter_type, brand, values_json = rest
         return cmd_form_pdf(letter_type, brand, values_json)

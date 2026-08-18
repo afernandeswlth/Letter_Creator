@@ -21,17 +21,18 @@ export default defineEventHandler(async (event) => {
   const brand = field('brand') ?? 'wlth'
   const ddBsb = field('ddBsb') ?? ''
   const ddAccount = field('ddAccount') ?? ''
+  const format = field('format') ?? 'both'
 
   let zip: Buffer
   try {
-    zip = await runEngineZip(files, { brand, ddBsb, ddAccount })
+    zip = await runEngineZip(files, { brand, ddBsb, ddAccount, format })
   } catch (err) {
     throw createError({ statusCode: 500, statusMessage: `Engine error: ${(err as Error).message}` })
   }
 
   // Record each party's letter in the history (best-effort; only re-render the
   // per-party PDFs when a store is configured).
-  if (isConfigured()) {
+  if (isConfigured() && format !== 'docx') {
     try {
       const label = brand === 'mma' ? 'MMA' : 'WLTH'
       const { parties } = await runEngine('parse', files, { brand, ddBsb, ddAccount })

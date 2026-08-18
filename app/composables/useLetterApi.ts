@@ -43,6 +43,7 @@ export function useLetterApi() {
     ddBsb: string,
     ddAccount: string,
     name: string,
+    format: 'pdf' | 'docx' | 'both' = 'both',
   ): Promise<void> {
     const blob = await $fetch<Blob>('/api/letters/zip', {
       method: 'POST',
@@ -51,6 +52,7 @@ export function useLetterApi() {
         ddBsb,
         ddAccount,
         name,
+        format,
       }),
       responseType: 'blob',
     })

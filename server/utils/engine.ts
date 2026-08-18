@@ -204,10 +204,10 @@ export async function runEngineFormPreview(
 /** Build a ZIP of every party's branded PDF; returns the ZIP bytes. */
 export async function runEngineZip(
   files: UploadedFile[],
-  opts: { brand: string; ddBsb: string; ddAccount: string },
+  opts: { brand: string; ddBsb: string; ddAccount: string; format?: string },
 ): Promise<Buffer> {
   return withFiles(files, (paths) => {
-    const args = [ENGINE, 'zip', opts.brand, opts.ddBsb, opts.ddAccount, ...paths]
+    const args = [ENGINE, 'zip', opts.brand, opts.ddBsb, opts.ddAccount, opts.format ?? 'both', ...paths]
     return new Promise<Buffer>((resolve, reject) => {
       execFile(
         'python3', args,

@@ -123,6 +123,26 @@ async function onDownloadAll() {
     zipping.value = false
   }
 }
+
+const zippingWord = ref(false)
+async function onDownloadWord() {
+  zippingWord.value = true
+  zipError.value = ''
+  try {
+    await downloadZip(
+      state.value.files,
+      state.value.brand,
+      state.value.ddBsb,
+      state.value.ddAccount,
+      `${loanName.value} Welcome Letters (Word)`,
+      'docx',
+    )
+  } catch (e) {
+    zipError.value = `Could not build the Word ZIP. ${(e as Error).message}`
+  } finally {
+    zippingWord.value = false
+  }
+}
 </script>
 
 <template>
@@ -202,6 +222,18 @@ async function onDownloadAll() {
           <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
         </svg>
         {{ zipping ? 'Preparing ZIP…' : 'Download All' }}
+      </button>
+
+      <button
+        type="button"
+        class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-40"
+        :disabled="zippingWord"
+        @click="onDownloadWord"
+      >
+        <svg class="h-4 w-4 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><path d="M14 2v6h6M8 13h8M8 17h5" />
+        </svg>
+        {{ zippingWord ? 'Preparing…' : 'Download Word' }}
       </button>
 
       <AddToDriveButton :files="driveFiles" :count="state.rendered.length" />

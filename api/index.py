@@ -179,25 +179,29 @@ def zip_letters():
     try:
         brand = _form('brand', 'wlth')
         dd_bsb, dd_account = _form('ddBsb'), _form('ddAccount')
+        fmt = _form('format', 'both')
         docs, _loan_type, smsf_number = cli.group(paths)
         label = 'MMA' if brand == 'mma' else 'WLTH'
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as z:
             for _p, d in docs:
-                data = pdf_letter.build_pdf(
-                    d, brand, dd_bsb, dd_account,
-                    smsf_number=None if d['is_entity'] else smsf_number)
+                smsf = None if d['is_entity'] else smsf_number
                 name = re.sub(r'^(mr|mrs|ms|miss|dr)\.?\s+', '', d['recipient_name'], flags=re.I)
                 fname = f'{label} Welcome Letter - {name}'
-                z.writestr(f'{fname}.pdf', data)
-                z.writestr(f'{fname}.docx', docx_letter.build_welcome_docx(
-                    d, brand, dd_bsb, dd_account, smsf_number=None if d['is_entity'] else smsf_number))
-                # Record each party's letter in the history (best-effort).
-                store.save_letter({
-                    'letter_type': 'welcome', 'type_label': store.LABELS['welcome'],
-                    'brand': brand, 'customer': name,
-                    'reference': d.get('loan_facility_number') or None,
-                }, data, fname, 'Completed')
+                data = None
+                if fmt in ('pdf', 'both'):
+                    data = pdf_letter.build_pdf(d, brand, dd_bsb, dd_account, smsf_number=smsf)
+                    z.writestr(f'{fname}.pdf', data)
+                if fmt in ('docx', 'both'):
+                    z.writestr(f'{fname}.docx', docx_letter.build_welcome_docx(
+                        d, brand, dd_bsb, dd_account, smsf_number=smsf))
+                # Record each party's letter in the history when a PDF was built.
+                if data is not None:
+                    store.save_letter({
+                        'letter_type': 'welcome', 'type_label': store.LABELS['welcome'],
+                        'brand': brand, 'customer': name,
+                        'reference': d.get('loan_facility_number') or None,
+                    }, data, fname, 'Completed')
         return Response(buf.getvalue(), mimetype='application/zip', headers={
             'Content-Disposition': 'attachment; filename="letters.zip"',
         })
