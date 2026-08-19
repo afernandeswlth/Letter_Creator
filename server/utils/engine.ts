@@ -144,6 +144,19 @@ export async function runEngineFormParse(
   })
 }
 
+/** Fetch a HubSpot deal by ID and map it to form-field values. */
+export async function runEngineHubspotDeal(
+  dealId: string,
+): Promise<{ values: Record<string, string> }> {
+  const args = [ENGINE, 'hubspot-deal', dealId]
+  return new Promise<{ values: Record<string, string> }>((resolve, reject) => {
+    execFile('python3', args, { cwd: CWD() }, (err, out, errOut) => {
+      if (err) reject(new Error(errOut || err.message))
+      else resolve(JSON.parse(out) as { values: Record<string, string> })
+    })
+  })
+}
+
 /** Render a form-driven letter type (e.g. Formal Approval) to PDF bytes. */
 export async function runEngineFormPdf(
   letterType: string,

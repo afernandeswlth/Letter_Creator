@@ -2,7 +2,7 @@
 import type { LetterTypeField } from '~/types'
 
 const { state, currentType, next, themeClasses } = useLetterWizard()
-const { parseFormSource } = useLetterApi()
+const { parseFormSource, importHubspotDeal } = useLetterApi()
 
 const showErrors = ref(false)
 
@@ -18,10 +18,43 @@ const supportsSchedule4 = computed(() => currentType.value?.source !== 'manual')
 // from the loan app and entering details by hand — the fields only appear once
 // "Enter manually" is chosen.
 const usesLoanAppEntry = computed(() => !!currentType.value?.loanAppImport)
-const entryMode = ref<'import' | 'manual' | null>(null)
+const entryMode = ref<'hubspot' | 'manual' | null>(null)
 // The fields are shown for ordinary manual types immediately, and for
-// loan-app-entry types only after "Enter manually" is chosen.
+// loan-app-entry types only after "Enter manually" (or a HubSpot import) reveals them.
 const showFields = computed(() => !usesLoanAppEntry.value || entryMode.value === 'manual')
+
+// --- HubSpot Deal import -----------------------------------------------------
+const dealId = ref('')
+const importing = ref(false)
+const importMsg = ref('')
+const importErr = ref('')
+
+async function runHubspotImport() {
+  importErr.value = ''
+  importMsg.value = ''
+  const id = dealId.value.trim()
+  if (!id) {
+    importErr.value = 'Enter a HubSpot Deal ID.'
+    return
+  }
+  importing.value = true
+  try {
+    const values = await importHubspotDeal(id)
+    const keys = Object.keys(values)
+    for (const k of keys) state.value.fieldValues[k] = values[k]!
+    if (keys.length) {
+      importMsg.value = `Imported ${keys.length} field${keys.length === 1 ? '' : 's'} from HubSpot — review and complete the rest below.`
+      entryMode.value = 'manual' // reveal the (now prefilled) form
+    } else {
+      importErr.value = 'That deal had no matching fields to import.'
+    }
+  } catch (e) {
+    const msg = (e as { data?: { statusMessage?: string; message?: string }; statusMessage?: string })
+    importErr.value = `Could not import the deal. ${msg?.data?.statusMessage || msg?.data?.message || msg?.statusMessage || (e as Error).message}`
+  } finally {
+    importing.value = false
+  }
+}
 
 // Ordered, unique section names.
 const sections = computed(() => {
@@ -135,7 +168,7 @@ function onNext() {
     <h2 class="text-lg font-semibold text-slate-900">Enter Details</h2>
     <p class="mt-1 text-sm text-slate-500">
       {{ usesLoanAppEntry
-        ? 'Import the application from the loan app, or enter the details manually.'
+        ? 'Prefill from a HubSpot deal, or enter the details manually.'
         : (supportsSchedule4 ? 'Choose the brand, then upload the Schedule 4 to auto-fill the letter.' : 'Choose the brand, then fill in the letter details.') }}
     </p>
 
@@ -144,21 +177,34 @@ function onNext() {
       <BrandSelector />
     </div>
 
-    <!-- Loan-app-entry chooser (CAM): Import from loan app / Enter manually -->
+    <!-- Loan-app-entry chooser (CAM): loan app (soon) / HubSpot deal / manual -->
     <div v-if="usesLoanAppEntry" class="mt-6">
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <!-- Import from loan app — disabled (coming soon) -->
+        <div class="flex cursor-not-allowed items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 opacity-70">
+          <WIcon name="download" class="mt-0.5 h-5 w-5 flex-none text-slate-300" />
+          <span>
+            <span class="flex flex-wrap items-center gap-1.5">
+              <span class="text-sm font-semibold text-slate-400">Import from loan app</span>
+              <span class="rounded-full bg-slate-200 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-500">Coming soon</span>
+            </span>
+            <span class="mt-0.5 block text-xs text-slate-400">Pull the application details in automatically.</span>
+          </span>
+        </div>
+        <!-- Import from HubSpot Deal -->
         <button
           type="button"
           class="flex items-start gap-3 rounded-xl border p-4 text-left transition"
-          :class="entryMode === 'import' ? 'border-blue-500 bg-blue-50/60 ring-1 ring-blue-500' : 'border-slate-200 hover:border-slate-300'"
-          @click="entryMode = 'import'"
+          :class="entryMode === 'hubspot' ? 'border-blue-500 bg-blue-50/60 ring-1 ring-blue-500' : 'border-slate-200 hover:border-slate-300'"
+          @click="entryMode = 'hubspot'"
         >
-          <WIcon name="download" class="mt-0.5 h-5 w-5 flex-none text-blue-600" />
+          <WIcon name="database" class="mt-0.5 h-5 w-5 flex-none text-blue-600" />
           <span>
-            <span class="block text-sm font-semibold text-slate-900">Import from loan app</span>
-            <span class="block text-xs text-slate-500">Pull the application details in automatically.</span>
+            <span class="block text-sm font-semibold text-slate-900">Import from HubSpot Deal</span>
+            <span class="block text-xs text-slate-500">Prefill from a HubSpot deal ID.</span>
           </span>
         </button>
+        <!-- Enter manually -->
         <button
           type="button"
           class="flex items-start gap-3 rounded-xl border p-4 text-left transition"
@@ -172,9 +218,38 @@ function onNext() {
           </span>
         </button>
       </div>
-      <p v-if="entryMode === 'import'" class="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500">
-        Importing from the loan app is coming soon. For now, choose <span class="font-medium text-slate-700">Enter manually</span>.
-      </p>
+
+      <!-- HubSpot Deal ID input -->
+      <div v-if="entryMode === 'hubspot'" class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <label for="hubspot-deal-id" class="block text-sm font-medium text-slate-700">HubSpot Deal ID</label>
+        <div class="mt-1.5 flex flex-col gap-2 sm:flex-row">
+          <input
+            id="hubspot-deal-id"
+            v-model="dealId"
+            type="text"
+            inputmode="numeric"
+            placeholder="e.g. 63484278077"
+            class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            @keyup.enter="runHubspotImport"
+          />
+          <button
+            type="button"
+            :disabled="importing"
+            class="inline-flex flex-none items-center justify-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold text-white transition disabled:opacity-50"
+            :class="themeClasses.btn"
+            @click="runHubspotImport"
+          >
+            <svg v-if="importing" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+            </svg>
+            {{ importing ? 'Importing…' : 'Import' }}
+          </button>
+        </div>
+        <p class="mt-1.5 text-xs text-slate-400">We’ll pull the borrower, loan amount, account, security and refinance details from the deal — you complete the rest.</p>
+        <p v-if="importMsg" class="mt-2 text-xs font-medium text-green-700">{{ importMsg }}</p>
+        <p v-if="importErr" class="mt-2 text-xs text-red-600">{{ importErr }}</p>
+      </div>
     </div>
 
     <!-- Default: Schedule 4 upload (only for Schedule-4-backed types) -->

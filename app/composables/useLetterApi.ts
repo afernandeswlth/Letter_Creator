@@ -320,5 +320,14 @@ export function useLetterApi() {
     window.open(url, '_blank', 'noopener')
   }
 
-  return { parseFunderDocs, renderLetters, previewPages, fetchPdf, fetchWelcomeDocx, downloadPdf, downloadZip, createEmailDraft, parseFormSource, formPreview, downloadFormPdf, fetchFormPdfBlob, downloadFormDocx, fetchFormDocxBlob, createFormEmailDraft, getRecentLetters, downloadStoredLetter }
+  /** POST /api/hubspot/deal — pull field values from a HubSpot deal by ID. */
+  async function importHubspotDeal(dealId: string): Promise<Record<string, string>> {
+    const res = await $fetch<{ values: Record<string, string> }>('/api/hubspot/deal', {
+      method: 'POST',
+      body: { dealId },
+    })
+    return res.values ?? {}
+  }
+
+  return { parseFunderDocs, renderLetters, previewPages, fetchPdf, fetchWelcomeDocx, downloadPdf, downloadZip, createEmailDraft, parseFormSource, formPreview, downloadFormPdf, fetchFormPdfBlob, downloadFormDocx, fetchFormDocxBlob, createFormEmailDraft, getRecentLetters, downloadStoredLetter, importHubspotDeal }
 }

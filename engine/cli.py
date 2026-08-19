@@ -238,6 +238,15 @@ def main(argv):
     if cmd == 'form-parse':
         letter_type, brand, path = rest
         return cmd_form_parse(letter_type, brand, path)
+    if cmd == 'hubspot-deal':
+        import hubspot_deal
+        try:
+            vals = hubspot_deal.fetch_deal_values(rest[0] if rest else '')
+        except Exception as e:  # noqa: BLE001 — surface a clean message, not a traceback
+            sys.stderr.write(str(e))
+            return 1
+        print(json.dumps({'values': vals}, ensure_ascii=False))
+        return 0
     if cmd == 'parse':
         out = cmd_parse(rest)
     elif cmd == 'render':

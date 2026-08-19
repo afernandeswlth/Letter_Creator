@@ -295,6 +295,19 @@ def form_parse_source():
         return _json({'error': str(e)}, 500)
 
 
+@app.post('/api/hubspot/deal')
+def hubspot_deal_route():
+    data = request.get_json(force=True, silent=True) or {}
+    deal_id = (data.get('dealId') or '').strip()
+    if not deal_id:
+        return _json({'error': 'A HubSpot Deal ID is required.'}, 400)
+    try:
+        import hubspot_deal
+        return _json({'values': hubspot_deal.fetch_deal_values(deal_id)})
+    except Exception as e:  # noqa: BLE001
+        return _json({'error': str(e)}, 502)
+
+
 @app.post('/api/forms/pdf')
 def form_pdf():
     data = request.get_json(force=True, silent=True) or {}
