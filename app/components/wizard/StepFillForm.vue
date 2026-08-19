@@ -14,6 +14,15 @@ const fields = computed<LetterTypeField[]>(() => currentType.value?.fields ?? []
 // filled by hand (Custom). Manual-only types skip the upload UI entirely.
 const supportsSchedule4 = computed(() => currentType.value?.source !== 'manual')
 
+// CAM-style entry: no brand picker (always WLTH) and a choice between importing
+// from the loan app and entering details by hand — the fields only appear once
+// "Enter manually" is chosen.
+const usesLoanAppEntry = computed(() => !!currentType.value?.loanAppImport)
+const entryMode = ref<'import' | 'manual' | null>(null)
+// The fields are shown for ordinary manual types immediately, and for
+// loan-app-entry types only after "Enter manually" is chosen.
+const showFields = computed(() => !usesLoanAppEntry.value || entryMode.value === 'manual')
+
 // Ordered, unique section names.
 const sections = computed(() => {
   const seen: string[] = []
@@ -43,6 +52,8 @@ onMounted(() => {
   seedDefaults()
   // Manual-only types (Custom) have no Schedule 4 — go straight to the fields.
   if (!supportsSchedule4.value) state.value.formMode = 'manual'
+  // Loan-app-entry types (CAM) are always WLTH and wait for a mode choice.
+  if (usesLoanAppEntry.value) state.value.brand = 'wlth'
 })
 
 function fieldText(f: LetterTypeField) {
@@ -123,12 +134,47 @@ function onNext() {
   <div class="rounded-xl border border-slate-200 bg-white p-6">
     <h2 class="text-lg font-semibold text-slate-900">Enter Details</h2>
     <p class="mt-1 text-sm text-slate-500">
-      {{ supportsSchedule4 ? 'Choose the brand, then upload the Schedule 4 to auto-fill the letter.' : 'Choose the brand, then fill in the letter details.' }}
+      {{ usesLoanAppEntry
+        ? 'Import the application from the loan app, or enter the details manually.'
+        : (supportsSchedule4 ? 'Choose the brand, then upload the Schedule 4 to auto-fill the letter.' : 'Choose the brand, then fill in the letter details.') }}
     </p>
 
-    <!-- Brand -->
-    <div class="mt-6">
+    <!-- Brand (hidden for loan-app-entry types — always WLTH) -->
+    <div v-if="!usesLoanAppEntry" class="mt-6">
       <BrandSelector />
+    </div>
+
+    <!-- Loan-app-entry chooser (CAM): Import from loan app / Enter manually -->
+    <div v-if="usesLoanAppEntry" class="mt-6">
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <button
+          type="button"
+          class="flex items-start gap-3 rounded-xl border p-4 text-left transition"
+          :class="entryMode === 'import' ? 'border-blue-500 bg-blue-50/60 ring-1 ring-blue-500' : 'border-slate-200 hover:border-slate-300'"
+          @click="entryMode = 'import'"
+        >
+          <WIcon name="download" class="mt-0.5 h-5 w-5 flex-none text-blue-600" />
+          <span>
+            <span class="block text-sm font-semibold text-slate-900">Import from loan app</span>
+            <span class="block text-xs text-slate-500">Pull the application details in automatically.</span>
+          </span>
+        </button>
+        <button
+          type="button"
+          class="flex items-start gap-3 rounded-xl border p-4 text-left transition"
+          :class="entryMode === 'manual' ? 'border-blue-500 bg-blue-50/60 ring-1 ring-blue-500' : 'border-slate-200 hover:border-slate-300'"
+          @click="entryMode = 'manual'"
+        >
+          <WIcon name="square-pen" class="mt-0.5 h-5 w-5 flex-none text-blue-600" />
+          <span>
+            <span class="block text-sm font-semibold text-slate-900">Enter manually</span>
+            <span class="block text-xs text-slate-500">Fill in the memorandum details yourself.</span>
+          </span>
+        </button>
+      </div>
+      <p v-if="entryMode === 'import'" class="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500">
+        Importing from the loan app is coming soon. For now, choose <span class="font-medium text-slate-700">Enter manually</span>.
+      </p>
     </div>
 
     <!-- Default: Schedule 4 upload (only for Schedule-4-backed types) -->
@@ -193,8 +239,8 @@ function onNext() {
       </div>
     </template>
 
-    <!-- Manual entry: the input questions (only when Create Manually is chosen) -->
-    <template v-else>
+    <!-- Manual entry: the input questions (for CAM, only after "Enter manually") -->
+    <template v-else-if="showFields">
       <div v-for="section in sections" :key="section" class="mt-8">
         <h3 class="border-b border-slate-100 pb-2 text-base font-semibold text-slate-900">{{ section }}</h3>
         <div class="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -262,7 +308,7 @@ function onNext() {
       Please upload a Schedule 4 before continuing.
     </p>
 
-    <div class="mt-8 flex items-center justify-end">
+    <div v-if="showFields" class="mt-8 flex items-center justify-end">
       <button
         type="button"
         class="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white transition"

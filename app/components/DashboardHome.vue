@@ -90,15 +90,19 @@ const { data: recent, pending, refresh } = useAsyncData('dashboard-recent', () =
               v-for="id in g.ids"
               :key="id"
               type="button"
-              class="group flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-3 text-left transition"
-              :class="THEME[g.theme].hover"
+              :disabled="typeOf(id).status !== 'available'"
+              class="group flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left transition"
+              :class="typeOf(id).status !== 'available'
+                ? 'cursor-not-allowed border-slate-200 bg-slate-50'
+                : ['border-slate-200 bg-white', THEME[g.theme].hover]"
               @click="chooseType(id)"
             >
               <span class="flex items-center gap-3">
-                <WIcon :name="TYPE_ICON[id]" class="h-5 w-5 flex-none" :class="THEME[g.theme].rowIcon" />
-                <span class="text-sm font-medium text-slate-800">{{ typeOf(id).label }}</span>
+                <WIcon :name="TYPE_ICON[id]" class="h-5 w-5 flex-none" :class="typeOf(id).status !== 'available' ? 'text-slate-300' : THEME[g.theme].rowIcon" />
+                <span class="text-sm font-medium" :class="typeOf(id).status !== 'available' ? 'text-slate-400' : 'text-slate-800'">{{ typeOf(id).label }}</span>
               </span>
-              <WIcon name="chevron-right" class="h-4 w-4 flex-none text-slate-400 transition group-hover:translate-x-0.5" />
+              <span v-if="typeOf(id).status !== 'available'" class="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Coming soon</span>
+              <WIcon v-else name="chevron-right" class="h-4 w-4 flex-none text-slate-400 transition group-hover:translate-x-0.5" />
             </button>
           </div>
         </div>

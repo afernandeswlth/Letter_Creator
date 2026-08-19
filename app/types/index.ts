@@ -55,6 +55,10 @@ export interface LetterType {
   /** How a 'form' type is filled: from a Schedule 4 upload, or by hand.
    *  Defaults to 'schedule4' when omitted. */
   source?: 'schedule4' | 'manual'
+  /** When true, the entry step drops the brand picker (always WLTH) and instead
+   *  offers "Import from loan app" or "Enter manually" — the form fields only
+   *  appear once "Enter manually" is chosen. */
+  loanAppImport?: boolean
   /** Field schema for 'form' types. */
   fields?: LetterTypeField[]
   /** When set, the Download step also offers to create an email draft (with the
