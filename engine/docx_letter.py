@@ -233,53 +233,65 @@ def _html_to_lines(html):
     return [ln.strip() for ln in s.split('\n')]
 
 
+# New CAM template: 8 tables with #### value placeholders. Maps
+# (table_index, row, col) of each value cell to the form field that fills it.
+_CAM_FILL = {
+    (0, 0, 1): 'borrowers', (0, 1, 1): 'exposureAccount', (0, 2, 1): 'mortgageManager',
+    (1, 1, 1): 'exposureBalance', (1, 1, 3): 'exposureBalance',
+    (1, 2, 1): 'exposureInterestType', (1, 2, 3): 'exposureLoanPurpose',
+    (1, 3, 1): 'proposedSecurity', (1, 3, 3): 'proposedLvr',
+    (2, 1, 1): 'personalInfo', (2, 2, 1): 'employment', (2, 3, 1): 'rentalIncome',
+    (2, 4, 1): 'security', (2, 5, 1): 'lmi', (2, 6, 1): 'ndi',
+    (3, 0, 0): 'refinanceHistory',
+    (4, 1, 0): 'liabilities',
+    (5, 1, 0): 'creditHistory',
+    (6, 1, 0): 'livingCost', (6, 1, 1): 'policyExceptions',
+    (7, 1, 0): 'finalAssessment', (7, 3, 0): 'recommendation', (7, 5, 1): 'recommendedDate',
+}
+
+
 def _fill_cam(doc, values):
-    """Fill the Credit Approval Memorandum template by its fixed row layout."""
+    """Fill the Credit Approval Memorandum template (8 tables + #### placeholders)."""
     g = lambda k, d='': (values.get(k) or d)  # noqa: E731
-    t = doc.tables[0]
+    tables = doc.tables
 
-    def setcell(ri, ci, val):
-        if val:
-            _set_cell(t.rows[ri].cells[ci], val)
-
+    # Date — the first date-like body paragraph at the top of the document.
     if g('date'):
-        _set_para_text(t.rows[1].cells[0].paragraphs[0], f"Date : {g('date')}")
-    # label | value rows (value in column 1)
-    for ri, field in [(2, 'borrowers'), (3, 'mortgageManager'), (11, 'proposedLvr'),
-                      (14, 'personalInfo'), (16, 'employment'), (18, 'rentalIncome'),
-                      (20, 'security'), (22, 'lmi'), (24, 'refinanceHistory'),
-                      (26, 'liabilities'), (28, 'creditHistory'), (30, 'ndi')]:
-        setcell(ri, 1, g(field))
-    # Proposed Exposure sub-table row (4 columns)
-    for ci, field in [(0, 'exposureAccount'), (1, 'exposureBalance'),
-                      (2, 'exposureInterestType'), (3, 'exposureLoanPurpose')]:
-        setcell(7, ci, g(field))
-    # full-width value rows (column 0)
-    setcell(9, 0, g('proposedSecurity'))
-    setcell(13, 0, g('backgroundInformation'))
-    # Living cost keeps its bold "Living cost" label + tab; always rewrite the
-    # cell so the template's example value never lingers when the field is blank.
-    lc = g('livingCost')
-    _set_cell(t.rows[32].cells[0], ('Living cost\t' + lc.replace('\n', '\n\t')) if lc else 'Living cost')
-    setcell(34, 0, g('policyExceptions'))
-    setcell(36, 0, g('finalAssessment'))
-    setcell(38, 0, g('recommendation'))
-    # Sign-off Date on the last row.
-    date = g('recommendedDate')
-    if date:
-        for para in t.rows[39].cells[0].paragraphs:
-            _replace_in_para(para, 'Date:', f'Date: {date}')
-    # Place the drawn signature image inline after "Signature:".
+        for p in doc.paragraphs[:4]:
+            s = p.text.strip()
+            if s and s[0].isdigit() and '/' in s:
+                _set_para_text(p, g('date'))
+                break
+
+    # Fill the mapped value cells.
+    for (ti, ri, ci), field in _CAM_FILL.items():
+        try:
+            _set_cell(tables[ti].rows[ri].cells[ci], g(field))
+        except IndexError:
+            pass
+
+    # Clear any remaining #### placeholders (unmapped value cells, e.g. the blank
+    # Name row and the extra refinance/liabilities grid cells).
+    for t in tables:
+        for row in t.rows:
+            done = set()
+            for cell in row.cells:
+                if id(cell._tc) in done:
+                    continue
+                done.add(id(cell._tc))
+                if '####' in cell.text:
+                    _set_cell(cell, '')
+
+    # Signature image in the sign-off (table 7, "Signature:" row).
     sig = values.get('recommendedSignature')
     if sig and 'base64,' in sig:
         import base64
         from docx.shared import Pt
         raw = base64.b64decode(sig.split('base64,', 1)[1])
-        for para in t.rows[39].cells[0].paragraphs:
-            if 'Signature:' in para.text:
-                para.add_run('  ')
-                para.add_run().add_picture(io.BytesIO(raw), height=Pt(24))
-                break
+        try:
+            tables[7].rows[6].cells[1].paragraphs[0].add_run().add_picture(io.BytesIO(raw), height=Pt(40))
+        except Exception:  # noqa: BLE001
+            pass
 
 
 _FILLERS = {
