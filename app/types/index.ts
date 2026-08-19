@@ -32,7 +32,7 @@ export type LetterTypeStatus = 'available' | 'coming-soon' | 'disabled'
 export interface LetterTypeField {
   id: string
   label: string
-  type: 'text' | 'textarea' | 'richtext' | 'date' | 'number' | 'email' | 'currency' | 'select' | 'signature'
+  type: 'text' | 'textarea' | 'richtext' | 'date' | 'number' | 'email' | 'currency' | 'select' | 'signature' | 'refinance'
   required: boolean
   placeholder?: string
   help?: string

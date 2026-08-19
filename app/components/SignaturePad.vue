@@ -5,7 +5,7 @@
  * engine embeds at the Signature line of the PDF and Word document. An empty
  * string means "not signed".
  */
-const props = defineProps<{ modelValue?: string; placeholder?: string }>()
+const props = defineProps<{ modelValue?: string; placeholder?: string; invalid?: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [string] }>()
 
 const W = 500
@@ -73,7 +73,7 @@ function clear() {
 </script>
 
 <template>
-  <div class="relative w-full overflow-hidden rounded-lg border border-slate-300 bg-white">
+  <div class="relative w-full overflow-hidden rounded-lg border bg-white" :class="invalid ? 'border-red-400' : 'border-slate-300'">
     <canvas
       ref="canvas"
       class="block w-full touch-none"

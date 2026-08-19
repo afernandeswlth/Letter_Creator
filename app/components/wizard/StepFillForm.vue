@@ -5,6 +5,9 @@ const { state, currentType, next, themeClasses } = useLetterWizard()
 const { parseFormSource, importHubspotDeal } = useLetterApi()
 
 const showErrors = ref(false)
+// After a prefill (HubSpot import), every still-empty field is flagged red so the
+// assessor can see at a glance what HubSpot didn't fill.
+const prefilled = ref(false)
 
 const today = new Date().toLocaleDateString('en-GB') // dd/mm/yyyy
 
@@ -34,7 +37,7 @@ async function runHubspotImport() {
   importMsg.value = ''
   const id = dealId.value.trim()
   if (!id) {
-    importErr.value = 'Enter a HubSpot Deal ID.'
+    importErr.value = 'Enter a HubSpot Record ID.'
     return
   }
   importing.value = true
@@ -43,8 +46,9 @@ async function runHubspotImport() {
     const keys = Object.keys(values)
     for (const k of keys) state.value.fieldValues[k] = values[k]!
     if (keys.length) {
-      importMsg.value = `Imported ${keys.length} field${keys.length === 1 ? '' : 's'} from HubSpot — review and complete the rest below.`
+      importMsg.value = `Imported ${keys.length} field${keys.length === 1 ? '' : 's'} from HubSpot — complete the fields outlined in red and review the amber (template default) ones below.`
       entryMode.value = 'manual' // reveal the (now prefilled) form
+      prefilled.value = true // flag remaining empty fields red
     } else {
       importErr.value = 'That deal had no matching fields to import.'
     }
@@ -96,6 +100,17 @@ function fieldText(f: LetterTypeField) {
 }
 const missing = (f: LetterTypeField) => f.required && !fieldText(f)
 const isValid = computed(() => fields.value.every((f) => !missing(f)))
+// Red border when a required field fails validation on Next, or when the form was
+// prefilled and this field is still empty.
+const highlight = (f: LetterTypeField) =>
+  (showErrors.value && missing(f)) || (prefilled.value && !fieldText(f))
+// Amber border when a field still holds its template default (boilerplate) — a hint
+// to the assessor to review it or add more detail.
+const isTemplateDefault = (f: LetterTypeField) =>
+  !!f.default && (state.value.fieldValues[f.id] ?? '') === f.default
+// Border colour: red (needs attention) wins over amber (review default) over normal.
+const borderClass = (f: LetterTypeField) =>
+  highlight(f) ? 'border-red-400' : isTemplateDefault(f) ? 'border-amber-400' : 'border-slate-300'
 
 // --- Schedule 4 upload (auto-fill) -----------------------------------------
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -201,7 +216,7 @@ function onNext() {
           <WIcon name="database" class="mt-0.5 h-5 w-5 flex-none text-blue-600" />
           <span>
             <span class="block text-sm font-semibold text-slate-900">Import from HubSpot Deal</span>
-            <span class="block text-xs text-slate-500">Prefill from a HubSpot deal ID.</span>
+            <span class="block text-xs text-slate-500">Prefill from a HubSpot Record ID.</span>
           </span>
         </button>
         <!-- Enter manually -->
@@ -219,9 +234,9 @@ function onNext() {
         </button>
       </div>
 
-      <!-- HubSpot Deal ID input -->
+      <!-- HubSpot Record ID input -->
       <div v-if="entryMode === 'hubspot'" class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-        <label for="hubspot-deal-id" class="block text-sm font-medium text-slate-700">HubSpot Deal ID</label>
+        <label for="hubspot-deal-id" class="block text-sm font-medium text-slate-700">HubSpot Record ID</label>
         <div class="mt-1.5 flex flex-col gap-2 sm:flex-row">
           <input
             id="hubspot-deal-id"
@@ -316,22 +331,33 @@ function onNext() {
 
     <!-- Manual entry: the input questions (for CAM, only after "Enter manually") -->
     <template v-else-if="showFields">
+      <!-- Colour legend for the review borders -->
+      <div class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-500">
+        <span class="inline-flex items-center gap-1.5"><span class="inline-block h-3 w-3 rounded border-2 border-red-400" />Needs a value</span>
+        <span class="inline-flex items-center gap-1.5"><span class="inline-block h-3 w-3 rounded border-2 border-amber-400" />Template default — review or add detail</span>
+      </div>
       <div v-for="section in sections" :key="section" class="mt-8">
         <h3 class="border-b border-slate-100 pb-2 text-base font-semibold text-slate-900">{{ section }}</h3>
         <div class="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
           <div
             v-for="f in fieldsIn(section)"
             :key="f.id"
-            :class="f.type === 'textarea' || f.type === 'richtext' || f.type === 'signature' ? 'sm:col-span-2' : ''"
+            :class="f.type === 'textarea' || f.type === 'richtext' || f.type === 'signature' || f.type === 'refinance' ? 'sm:col-span-2' : ''"
           >
             <label :for="f.id" class="block text-sm font-medium text-slate-700">
               {{ f.label }} <span v-if="f.required" class="text-red-500">*</span>
             </label>
 
-            <SignaturePad
-              v-if="f.type === 'signature'"
+            <RefinanceList
+              v-if="f.type === 'refinance'"
               v-model="state.fieldValues[f.id]"
               :placeholder="f.placeholder"
+            />
+            <SignaturePad
+              v-else-if="f.type === 'signature'"
+              v-model="state.fieldValues[f.id]"
+              :placeholder="f.placeholder"
+              :invalid="highlight(f)"
               class="mt-1.5"
             />
             <RichTextEditor
@@ -347,14 +373,14 @@ function onNext() {
               :rows="f.rows ?? 2"
               :placeholder="f.placeholder"
               class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              :class="showErrors && missing(f) ? 'border-red-400' : 'border-slate-300'"
+              :class="borderClass(f)"
             />
             <select
               v-else-if="f.type === 'select'"
               :id="f.id"
               v-model="state.fieldValues[f.id]"
               class="mt-1.5 block w-full rounded-lg border bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              :class="showErrors && missing(f) ? 'border-red-400' : 'border-slate-300'"
+              :class="borderClass(f)"
             >
               <option v-for="opt in f.options" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
             </select>
@@ -365,7 +391,7 @@ function onNext() {
               :type="f.type === 'email' ? 'email' : 'text'"
               :placeholder="f.placeholder"
               class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              :class="showErrors && missing(f) ? 'border-red-400' : 'border-slate-300'"
+              :class="borderClass(f)"
             />
 
             <p v-if="f.help" class="mt-1 text-xs text-slate-400">{{ f.help }}</p>

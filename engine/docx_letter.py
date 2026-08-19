@@ -242,12 +242,82 @@ _CAM_FILL = {
     (1, 3, 1): 'proposedSecurity', (1, 3, 3): 'proposedLvr',
     (2, 1, 1): 'personalInfo', (2, 2, 1): 'employment', (2, 3, 1): 'rentalIncome',
     (2, 4, 1): 'security', (2, 5, 1): 'lmi', (2, 6, 1): 'ndi',
-    (3, 0, 0): 'refinanceHistory',
+    # table 3 (Refinance History) is filled dynamically — see _fill_refinance.
     (4, 1, 0): 'liabilities',
     (5, 1, 0): 'creditHistory',
     (6, 1, 0): 'livingCost', (6, 1, 1): 'policyExceptions',
-    (7, 1, 0): 'finalAssessment', (7, 3, 0): 'recommendation', (7, 5, 1): 'recommendedDate',
+    (7, 1, 0): 'finalAssessment', (7, 3, 0): 'recommendation',
+    (7, 4, 1): 'recommendedName', (7, 5, 1): 'recommendedDate',
 }
+
+
+def _refinance_notes(raw):
+    """Parse the refinanceNotes field (JSON array of note strings) into a list.
+    Always returns at least one (possibly empty) entry."""
+    import json
+    items = []
+    if raw:
+        try:
+            parsed = json.loads(raw)
+            items = [str(x).strip() for x in parsed] if isinstance(parsed, list) else [str(parsed).strip()]
+        except (ValueError, TypeError):
+            items = [str(raw).strip()]
+    return items or ['']
+
+
+def _shade_cell(cell, fill):
+    """Set a table cell's background shading (hex fill, no leading #)."""
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+    tcPr = cell._tc.get_or_add_tcPr()
+    for shd in tcPr.findall(qn('w:shd')):
+        tcPr.remove(shd)
+    shd = OxmlElement('w:shd')
+    shd.set(qn('w:val'), 'clear')
+    shd.set(qn('w:color'), 'auto')
+    shd.set(qn('w:fill'), fill)
+    tcPr.append(shd)
+
+
+def _set_cell_width(cell, twips):
+    """Set a cell's width in twips (dxa)."""
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+    tcPr = cell._tc.get_or_add_tcPr()
+    tcW = tcPr.find(qn('w:tcW'))
+    if tcW is None:
+        tcW = OxmlElement('w:tcW')
+        tcPr.append(tcW)
+    tcW.set(qn('w:w'), str(twips))
+    tcW.set(qn('w:type'), 'dxa')
+
+
+# Refinance grid column widths (twips) — the left "Refinance N" column matches the
+# Background information table's label column (~99pt).
+_RF_LEFT, _RF_RIGHT = 1979, 8086
+
+
+def _fill_refinance(table, refis):
+    """Fill the Refinance History grid: one row per refinance, left cell
+    "Refinance N" (grey), right cell the notes. Adds/removes rows to fit."""
+    import copy
+    from docx.oxml.ns import qn
+    while len(table.rows) < len(refis):
+        table._tbl.append(copy.deepcopy(table.rows[-1]._tr))
+    while len(table.rows) > len(refis):
+        table._tbl.remove(table.rows[-1]._tr)
+    # Narrow the "Refinance N" column to match the Background label column.
+    gcols = table._tbl.tblGrid.findall(qn('w:gridCol'))
+    if len(gcols) >= 2:
+        gcols[0].set(qn('w:w'), str(_RF_LEFT))
+        gcols[1].set(qn('w:w'), str(_RF_RIGHT))
+    for i, note in enumerate(refis):
+        cells = table.rows[i].cells
+        _set_cell(cells[0], 'Refinance %d' % (i + 1))
+        _set_cell(cells[1], note)
+        _shade_cell(cells[0], 'ECEFF1')
+        _set_cell_width(cells[0], _RF_LEFT)
+        _set_cell_width(cells[1], _RF_RIGHT)
 
 
 def _fill_cam(doc, values):
@@ -269,6 +339,12 @@ def _fill_cam(doc, values):
             _set_cell(tables[ti].rows[ri].cells[ci], g(field))
         except IndexError:
             pass
+
+    # Refinance History (table 3) — dynamic rows: "Refinance N" | notes.
+    try:
+        _fill_refinance(tables[3], _refinance_notes(g('refinanceNotes')))
+    except IndexError:
+        pass
 
     # Clear any remaining #### placeholders (unmapped value cells, e.g. the blank
     # Name row and the extra refinance/liabilities grid cells).

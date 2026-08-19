@@ -130,12 +130,17 @@ async function applyChanges() {
           <div
             v-for="f in fieldsIn(section)"
             :key="f.id"
-            :class="f.type === 'textarea' || f.type === 'richtext' || f.type === 'signature' ? 'sm:col-span-2' : ''"
+            :class="f.type === 'textarea' || f.type === 'richtext' || f.type === 'signature' || f.type === 'refinance' ? 'sm:col-span-2' : ''"
           >
             <label :for="`edit-${f.id}`" class="block text-sm font-medium text-slate-700">{{ f.label }}</label>
 
+            <RefinanceList
+              v-if="f.type === 'refinance'"
+              v-model="draft[f.id]"
+              :placeholder="f.placeholder"
+            />
             <SignaturePad
-              v-if="f.type === 'signature'"
+              v-else-if="f.type === 'signature'"
               v-model="draft[f.id]"
               :placeholder="f.placeholder"
               class="mt-1.5"

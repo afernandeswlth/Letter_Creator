@@ -11,6 +11,7 @@ driven (field ids match app/utils/letterTypes.ts); meant to look like the filled
 Word document (engine/docx_letter.py).
 """
 import io
+import json
 import os
 
 from reportlab.lib import colors
@@ -50,6 +51,26 @@ except Exception:  # noqa: BLE001
     FONT, BOLD = 'Helvetica', 'Helvetica-Bold'
 
 CAM_TITLE = 'Credit Approval Memorandum (CAM)'
+
+
+def _refinance_notes(raw):
+    """Parse the refinance field (a JSON array of note strings) into a list.
+
+    The form stores 1-5 refinances as a JSON array; older/plain values fall back
+    to a single-item list. Always returns at least one (possibly empty) entry so
+    the table shows a "Refinance 1" row.
+    """
+    items = []
+    if raw:
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, list):
+                items = [str(x).strip() for x in parsed]
+            else:
+                items = [str(parsed).strip()]
+        except (ValueError, TypeError):
+            items = [raw.strip()]
+    return items or ['']
 
 
 def _header(cvs, brand):
@@ -144,7 +165,7 @@ def build_cam_pdf(brand_id, v):
     ov_cols = [100.0, CONTENT_W - 100.0]
     pd_cols = [84.5, 163.6, 77.3, CONTENT_W - 84.5 - 163.6 - 77.3]
     bg_cols = [98.4, CONTENT_W - 98.4]
-    rf_cols = [226.8, CONTENT_W - 226.8]
+    rf_cols = [98.4, CONTENT_W - 98.4]  # narrow "Refinance N" col, same as the Background label col
     li_cols = [156.0, 184.4, CONTENT_W - 156.0 - 184.4]
     half = CONTENT_W / 2.0
     GAP = 20
@@ -177,9 +198,11 @@ def build_cam_pdf(brand_id, v):
     bg.setStyle(style(bar_first=True, label_cols=(0,)))
     flow += [section([bg]), Spacer(1, GAP)]
 
-    # Refinance History
-    rf = Table([[V(g('refinanceHistory')), V('')], [V(''), V('')]], colWidths=rf_cols)
-    rf.setStyle(style())
+    # Refinance History — one row per refinance (left "Refinance N", right notes).
+    refis = _refinance_notes(g('refinanceNotes'))
+    rf = Table([[L('Refinance %d' % (i + 1)), V(note)] for i, note in enumerate(refis)],
+               colWidths=rf_cols)
+    rf.setStyle(style(label_cols=(0,)))
     flow += [section([Paragraph('Refinance History', head), Spacer(1, 9), rf]), Spacer(1, GAP)]
 
     # Liabilities
@@ -214,7 +237,7 @@ def build_cam_pdf(brand_id, v):
     rec = Table([
         [B('Recommendation / Approval (including conditions)'), ''],
         [V(g('recommendation')), ''],
-        [L('Name:'), V('')],
+        [L('Name:'), V(g('recommendedName'))],
         [L('Date:'), V(g('recommendedDate'))],
         [L('Signature:'), sig if sig is not None else V('')],
     ], colWidths=[half, half], rowHeights=[None, _min_h(g('recommendation'), val, CONTENT_W, 40), None, None, sig_h])
