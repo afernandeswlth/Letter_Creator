@@ -157,8 +157,9 @@ export const LETTER_TYPES: Record<LetterTypeId, LetterType> = {
     label: 'Credit Approval Memorandum',
     description: 'Internal CAM — assess the application and record the credit recommendation.',
     icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
-    // Disabled on the dashboard (Coming soon) while the loan-app import is finished.
-    status: 'coming-soon',
+    // Live (production) shows this as a disabled "Coming soon" button; on localhost
+    // (dev) it stays fully available so we can keep building it.
+    status: import.meta.dev ? 'available' : 'coming-soon',
     inputModel: 'form',
     engine: 'credit-approval-memorandum',
     source: 'manual',
