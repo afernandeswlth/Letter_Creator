@@ -11,6 +11,7 @@ const TYPE_ICON: Record<LetterTypeId, string> = {
   commencement: 'building-2',
   'pre-approval': 'user',
   'conditional-approval': 'clipboard-check',
+  'credit-approval-memorandum': 'file-text',
   discharge: 'shield-check',
   custom: 'square-pen',
 }
@@ -23,6 +24,7 @@ const GROUPS: Group[] = [
     { id: 'pre-approval', word: true, pdf: true },
     { id: 'conditional-approval', word: true, pdf: true },
     { id: 'approval', word: true, pdf: true },
+    { id: 'credit-approval-memorandum', word: true, pdf: true },
   ] },
   { name: 'Customer Service Team', icon: 'users', theme: 'green', rows: [
     { id: 'welcome', word: true, pdf: true, pdfStatic: true },

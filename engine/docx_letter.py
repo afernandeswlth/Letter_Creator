@@ -58,7 +58,9 @@ def _replace_in_para(paragraph, old, new):
 
 def _set_cell(cell, text):
     """Set a table cell's value, keeping the value paragraph's formatting and
-    supporting multiple lines."""
+    supporting multiple lines. Removes any nested tables in the cell first."""
+    for tbl in cell.tables:
+        tbl._element.getparent().remove(tbl._element)
     p = cell.paragraphs[0]
     # drop any extra paragraphs in the cell
     for extra in cell.paragraphs[1:]:
@@ -231,8 +233,58 @@ def _html_to_lines(html):
     return [ln.strip() for ln in s.split('\n')]
 
 
+def _fill_cam(doc, values):
+    """Fill the Credit Approval Memorandum template by its fixed row layout."""
+    g = lambda k, d='': (values.get(k) or d)  # noqa: E731
+    t = doc.tables[0]
+
+    def setcell(ri, ci, val):
+        if val:
+            _set_cell(t.rows[ri].cells[ci], val)
+
+    if g('date'):
+        _set_para_text(t.rows[1].cells[0].paragraphs[0], f"Date : {g('date')}")
+    # label | value rows (value in column 1)
+    for ri, field in [(2, 'borrowers'), (3, 'mortgageManager'), (11, 'proposedLvr'),
+                      (14, 'personalInfo'), (16, 'employment'), (18, 'rentalIncome'),
+                      (20, 'security'), (22, 'lmi'), (24, 'refinanceHistory'),
+                      (26, 'liabilities'), (28, 'creditHistory'), (30, 'ndi')]:
+        setcell(ri, 1, g(field))
+    # Proposed Exposure sub-table row (4 columns)
+    for ci, field in [(0, 'exposureAccount'), (1, 'exposureBalance'),
+                      (2, 'exposureInterestType'), (3, 'exposureLoanPurpose')]:
+        setcell(7, ci, g(field))
+    # full-width value rows (column 0)
+    setcell(9, 0, g('proposedSecurity'))
+    setcell(13, 0, g('backgroundInformation'))
+    # Living cost keeps its bold "Living cost" label + tab; always rewrite the
+    # cell so the template's example value never lingers when the field is blank.
+    lc = g('livingCost')
+    _set_cell(t.rows[32].cells[0], ('Living cost\t' + lc.replace('\n', '\n\t')) if lc else 'Living cost')
+    setcell(34, 0, g('policyExceptions'))
+    setcell(36, 0, g('finalAssessment'))
+    setcell(38, 0, g('recommendation'))
+    # Sign-off Date on the last row.
+    date = g('recommendedDate')
+    if date:
+        for para in t.rows[39].cells[0].paragraphs:
+            _replace_in_para(para, 'Date:', f'Date: {date}')
+    # Place the drawn signature image inline after "Signature:".
+    sig = values.get('recommendedSignature')
+    if sig and 'base64,' in sig:
+        import base64
+        from docx.shared import Pt
+        raw = base64.b64decode(sig.split('base64,', 1)[1])
+        for para in t.rows[39].cells[0].paragraphs:
+            if 'Signature:' in para.text:
+                para.add_run('  ')
+                para.add_run().add_picture(io.BytesIO(raw), height=Pt(24))
+                break
+
+
 _FILLERS = {
     'approval': _fill_approval_family,
+    'credit-approval-memorandum': _fill_cam,
     'pre-approval': _fill_approval_family,
     'conditional-approval': _fill_approval_family,
     'commencement': _fill_commencement,

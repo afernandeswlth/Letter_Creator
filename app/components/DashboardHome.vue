@@ -14,7 +14,7 @@ interface Group {
   ids: LetterTypeId[]
 }
 const GROUPS: Group[] = [
-  { name: 'Credit Team', desc: 'Letters for credit review and approval processes.', theme: 'blue', icon: 'shield', ids: ['pre-approval', 'conditional-approval', 'approval'] },
+  { name: 'Credit Team', desc: 'Letters for credit review and approval processes.', theme: 'blue', icon: 'shield', ids: ['pre-approval', 'conditional-approval', 'approval', 'credit-approval-memorandum'] },
   { name: 'Customer Service Team', desc: 'Letters for customer communication and updates.', theme: 'green', icon: 'users', ids: ['welcome', 'commencement', 'discharge'] },
   { name: 'All Teams', desc: 'Create custom letters for any situation.', theme: 'purple', icon: 'square-pen', ids: ['custom'] },
 ]
@@ -26,6 +26,7 @@ const TYPE_ICON: Record<LetterTypeId, string> = {
   commencement: 'building-2',
   'pre-approval': 'user',
   'conditional-approval': 'clipboard-check',
+  'credit-approval-memorandum': 'file-text',
   discharge: 'shield-check',
   custom: 'square-pen',
 }

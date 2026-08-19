@@ -81,8 +81,10 @@ def build_form_pdf(letter_type, brand, values):
     import preapproval_letter
     import conditional_letter
     import discharge_letter
+    import cam_letter
     renderers = {
         'approval': approval_letter.build_approval_pdf,
+        'credit-approval-memorandum': cam_letter.build_cam_pdf,
         'custom': custom_letter.build_custom_pdf,
         'commencement': commencement_letter.build_commencement_pdf,
         'pre-approval': preapproval_letter.build_preapproval_pdf,

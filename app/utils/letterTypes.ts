@@ -152,6 +152,48 @@ export const LETTER_TYPES: Record<LetterTypeId, LetterType> = {
     ],
   },
 
+  'credit-approval-memorandum': {
+    id: 'credit-approval-memorandum',
+    label: 'Credit Approval Memorandum',
+    description: 'Internal CAM — assess the application and record the credit recommendation.',
+    icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
+    status: 'available',
+    inputModel: 'form',
+    engine: 'credit-approval-memorandum',
+    source: 'manual',
+    fields: [
+      // Overview
+      { id: 'date', label: 'Date', type: 'date', required: false, section: 'Overview' },
+      { id: 'borrowers', label: 'Borrower(s)', type: 'text', required: true, placeholder: 'Mr John Smith & Mrs Jane Smith', section: 'Overview' },
+      { id: 'mortgageManager', label: 'Mortgage Manager', type: 'text', required: false, default: 'WLTH', section: 'Overview' },
+      // Proposed Exposure
+      { id: 'exposureAccount', label: 'Account Number', type: 'text', required: false, placeholder: '400192207', section: 'Proposed Exposure' },
+      { id: 'exposureBalance', label: 'Proposed Balance', type: 'currency', required: false, placeholder: '$750,000.00', section: 'Proposed Exposure' },
+      { id: 'exposureInterestType', label: 'Interest Type', type: 'text', required: false, default: 'Variable', section: 'Proposed Exposure' },
+      { id: 'exposureLoanPurpose', label: 'Loan Purpose', type: 'text', required: false, placeholder: 'Purchase - Owner Occupied', section: 'Proposed Exposure' },
+      { id: 'proposedSecurity', label: 'Proposed Security', type: 'textarea', required: false, default: 'TBA', section: 'Proposed Exposure' },
+      { id: 'proposedLvr', label: 'Proposed LVR', type: 'text', required: false, placeholder: '72%', section: 'Proposed Exposure' },
+      // Background Information
+      { id: 'backgroundInformation', label: 'Background Information', type: 'textarea', required: false, rows: 3, section: 'Background Information' },
+      { id: 'personalInfo', label: 'Personal Info', type: 'textarea', required: false, rows: 5, default: '(MA)\nID Checked – Category 1 (VOI conducted by a Third-Party Certifier)\nPassport (valid)\nDriver’s License (valid)', section: 'Background Information' },
+      { id: 'employment', label: 'Employment', type: 'textarea', required: false, rows: 3, default: 'Payslips:\nGross Base Income:\nSalary Credits in:', section: 'Background Information' },
+      { id: 'rentalIncome', label: 'Rental Income', type: 'textarea', required: false, rows: 2, section: 'Background Information' },
+      { id: 'security', label: 'Security', type: 'textarea', required: false, rows: 6, default: 'Metro (Category 1)\nValuation Date:\nMain Dwelling:\nLiving Area:\nComparable Sales:\nMarket Value (Valuation Report):\nRental Income:', section: 'Background Information' },
+      { id: 'lmi', label: 'LMI', type: 'text', required: false, default: 'N/A (Does not exceed 80% LVR)', section: 'Background Information' },
+      { id: 'refinanceHistory', label: 'Refinance History', type: 'textarea', required: false, rows: 2, section: 'Background Information' },
+      { id: 'liabilities', label: 'Liabilities', type: 'textarea', required: false, rows: 2, section: 'Background Information' },
+      { id: 'creditHistory', label: 'Credit History', type: 'textarea', required: false, rows: 5, default: 'Report date:  – Comprehensive\nEquifax Score:\nClear from any adverse\nNo Recent Credit Enquiries\nNo Recent Commercial Enquiry\nNo Current Directorship', section: 'Background Information' },
+      { id: 'ndi', label: 'NDI', type: 'textarea', required: false, rows: 2, section: 'Background Information' },
+      { id: 'livingCost', label: 'Living Cost', type: 'textarea', required: false, rows: 2, placeholder: 'Living cost: $ pm / $ pa — HEM of ( %)', section: 'Background Information' },
+      // Assessment
+      { id: 'policyExceptions', label: 'Policy Exceptions (including mitigants)', type: 'textarea', required: false, rows: 3, section: 'Assessment' },
+      { id: 'finalAssessment', label: 'Final Assessment', type: 'textarea', required: false, rows: 8, default: 'I have assessed the loan application in a prudent manner and reasonable enquiries have been made in my assessment and I have determined that the loan is not unsuitable for the applicant/s and that the:\nthe loan terms meet the applicant/s requirements and objectives;\nthe applicant/s will be able to comply with their financial obligations under the loan product;\nthe applicant/s have the requisite capacity to service all financial commitments and without substantial hardship; and\neach applicant/s has the requisite authority / capacity to grant the supporting securities.', section: 'Assessment' },
+      { id: 'recommendation', label: 'Recommendation / Approval (including conditions)', type: 'textarea', required: false, rows: 4, default: 'Recommended for Conditional Approval:', section: 'Assessment' },
+      { id: 'recommendedDate', label: 'Assessor Date', type: 'date', required: false, section: 'Assessment' },
+      { id: 'recommendedSignature', label: 'Signature', type: 'signature', required: false, help: 'Sign in the box — this is placed at the Signature line in the PDF and Word doc.', section: 'Assessment' },
+    ],
+  },
+
   discharge: {
     id: 'discharge',
     label: 'Discharge Confirmation Letter',

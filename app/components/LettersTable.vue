@@ -25,6 +25,7 @@ const TYPE_ICON: Record<LetterTypeId, string> = {
   commencement: 'building-2',
   'pre-approval': 'user',
   'conditional-approval': 'clipboard-check',
+  'credit-approval-memorandum': 'file-text',
   discharge: 'shield-check',
   custom: 'square-pen',
 }

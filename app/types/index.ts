@@ -19,6 +19,7 @@ export type LetterTypeId =
   | 'commencement'
   | 'pre-approval'
   | 'conditional-approval'
+  | 'credit-approval-memorandum'
   | 'discharge'
   | 'custom'
 export type InputModel = 'upload' | 'form'
@@ -31,7 +32,7 @@ export type LetterTypeStatus = 'available' | 'coming-soon' | 'disabled'
 export interface LetterTypeField {
   id: string
   label: string
-  type: 'text' | 'textarea' | 'richtext' | 'date' | 'number' | 'email' | 'currency' | 'select'
+  type: 'text' | 'textarea' | 'richtext' | 'date' | 'number' | 'email' | 'currency' | 'select' | 'signature'
   required: boolean
   placeholder?: string
   help?: string
