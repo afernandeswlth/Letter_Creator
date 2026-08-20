@@ -32,7 +32,7 @@ export type LetterTypeStatus = 'available' | 'coming-soon' | 'disabled'
 export interface LetterTypeField {
   id: string
   label: string
-  type: 'text' | 'textarea' | 'richtext' | 'date' | 'number' | 'email' | 'currency' | 'select' | 'signature' | 'refinance'
+  type: 'text' | 'textarea' | 'richtext' | 'date' | 'number' | 'email' | 'currency' | 'select' | 'signature' | 'table'
   required: boolean
   placeholder?: string
   help?: string
@@ -41,6 +41,12 @@ export interface LetterTypeField {
   section?: string // optional grouping heading in the form UI
   showIf?: { field: string; equals: string } // only show when another field matches
   rows?: number // textarea height (rows); defaults to a small box when omitted
+  // --- for type: 'table' (an editable, add-row grid; stored as JSON) ---
+  columns?: { label: string; placeholder?: string }[] // editable columns
+  rowLabelPrefix?: string // read-only auto first column, e.g. 'Refinance' → "Refinance 1"
+  flat?: boolean // single-column table stored as a flat string[] (not a 2D array)
+  showHeader?: boolean // show the column-label header row (default true)
+  maxRows?: number // cap on rows
 }
 
 export interface LetterType {

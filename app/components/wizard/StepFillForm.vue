@@ -342,16 +342,20 @@ function onNext() {
           <div
             v-for="f in fieldsIn(section)"
             :key="f.id"
-            :class="f.type === 'textarea' || f.type === 'richtext' || f.type === 'signature' || f.type === 'refinance' ? 'sm:col-span-2' : ''"
+            :class="f.type === 'textarea' || f.type === 'richtext' || f.type === 'signature' || f.type === 'table' ? 'sm:col-span-2' : ''"
           >
             <label :for="f.id" class="block text-sm font-medium text-slate-700">
               {{ f.label }} <span v-if="f.required" class="text-red-500">*</span>
             </label>
 
-            <RefinanceList
-              v-if="f.type === 'refinance'"
+            <TableInput
+              v-if="f.type === 'table'"
               v-model="state.fieldValues[f.id]"
-              :placeholder="f.placeholder"
+              :columns="f.columns || []"
+              :row-label-prefix="f.rowLabelPrefix"
+              :flat="f.flat"
+              :show-header="f.showHeader"
+              :max-rows="f.maxRows"
             />
             <SignaturePad
               v-else-if="f.type === 'signature'"
