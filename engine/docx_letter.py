@@ -242,8 +242,7 @@ _CAM_FILL = {
     (1, 3, 1): 'proposedSecurity', (1, 3, 3): 'proposedLvr',
     (2, 1, 1): 'personalInfo', (2, 2, 1): 'employment', (2, 3, 1): 'rentalIncome',
     (2, 4, 1): 'security', (2, 5, 1): 'lmi', (2, 6, 1): 'ndi',
-    # table 3 (Refinance History) is filled dynamically — see _fill_refinance.
-    (4, 1, 0): 'liabilities',
+    # tables 3 (Refinance) and 4 (Liabilities) are filled dynamically below.
     (5, 1, 0): 'creditHistory',
     (6, 1, 0): 'livingCost', (6, 1, 1): 'policyExceptions',
     (7, 1, 0): 'finalAssessment', (7, 3, 0): 'recommendation',
@@ -320,6 +319,44 @@ def _fill_refinance(table, refis):
         _set_cell_width(cells[1], _RF_RIGHT)
 
 
+def _table_rows(raw, ncols, min_rows=1):
+    """Parse a table field into a list of ncols-wide string rows. Accepts a JSON
+    2D array, a JSON array of strings (first column), or a plain string (legacy)."""
+    import json
+    rows = []
+    if raw:
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, list):
+                for r in parsed:
+                    cells = r if isinstance(r, list) else [r]
+                    rows.append([('' if i >= len(cells) or cells[i] is None else str(cells[i]).strip())
+                                 for i in range(ncols)])
+            else:
+                rows.append([str(parsed).strip()] + [''] * (ncols - 1))
+        except (ValueError, TypeError):
+            rows.append([str(raw).strip()] + [''] * (ncols - 1))
+    while len(rows) < min_rows:
+        rows.append([''] * ncols)
+    return rows
+
+
+def _fill_liabilities(table, rows):
+    """Fill the Liabilities grid below its header row: one row per liability
+    (Type of Loan | Outstanding Balance/Limit | Conduct). Adds/removes rows."""
+    import copy
+    header = 1
+    want = header + len(rows)
+    while len(table.rows) < want:
+        table._tbl.append(copy.deepcopy(table.rows[-1]._tr))
+    while len(table.rows) > want and len(table.rows) > header + 1:
+        table._tbl.remove(table.rows[-1]._tr)
+    for i, r in enumerate(rows):
+        cells = table.rows[header + i].cells
+        for c in range(min(3, len(cells))):
+            _set_cell(cells[c], r[c] if c < len(r) else '')
+
+
 def _fill_cam(doc, values):
     """Fill the Credit Approval Memorandum template (8 tables + #### placeholders)."""
     g = lambda k, d='': (values.get(k) or d)  # noqa: E731
@@ -343,6 +380,12 @@ def _fill_cam(doc, values):
     # Refinance History (table 3) — dynamic rows: "Refinance N" | notes.
     try:
         _fill_refinance(tables[3], _refinance_notes(g('refinanceNotes')))
+    except IndexError:
+        pass
+
+    # Liabilities (table 4) — dynamic rows below the header.
+    try:
+        _fill_liabilities(tables[4], _table_rows(g('liabilities'), 3, min_rows=1))
     except IndexError:
         pass
 

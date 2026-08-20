@@ -73,6 +73,31 @@ def _refinance_notes(raw):
     return items or ['']
 
 
+def _table_rows(raw, ncols, min_rows=1):
+    """Parse a table field into a list of ncols-wide string rows.
+
+    Accepts a JSON 2D array (list of rows), a JSON array of strings (each becomes
+    the first column), or a plain string (legacy single value). Each row is padded
+    or trimmed to ncols; always returns at least min_rows rows so the grid renders.
+    """
+    rows = []
+    if raw:
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, list):
+                for r in parsed:
+                    cells = r if isinstance(r, list) else [r]
+                    rows.append([('' if i >= len(cells) or cells[i] is None else str(cells[i]).strip())
+                                 for i in range(ncols)])
+            else:
+                rows.append([str(parsed).strip()] + [''] * (ncols - 1))
+        except (ValueError, TypeError):
+            rows.append([str(raw).strip()] + [''] * (ncols - 1))
+    while len(rows) < min_rows:
+        rows.append([''] * ncols)
+    return rows
+
+
 def _header(cvs, brand):
     """Grey header band, blue title, slanted WLTH mark bleeding top-right (page 1)."""
     cvs.saveState()
@@ -205,9 +230,11 @@ def build_cam_pdf(brand_id, v):
     rf.setStyle(style(label_cols=(0,)))
     flow += [section([Paragraph('Refinance History', head), Spacer(1, 9), rf]), Spacer(1, GAP)]
 
-    # Liabilities
-    li = Table([[L('Type of Loan'), L('Outstanding Balance / Limit'), L('Conduct')],
-                [V(g('liabilities')), V(''), V('')], [V(''), V(''), V('')]], colWidths=li_cols)
+    # Liabilities — header row + one row per liability (Type / Balance / Conduct).
+    li_rows = [[L('Type of Loan'), L('Outstanding Balance / Limit'), L('Conduct')]]
+    for r in _table_rows(g('liabilities'), 3, min_rows=1):
+        li_rows.append([V(r[0]), V(r[1]), V(r[2])])
+    li = Table(li_rows, colWidths=li_cols)
     li.setStyle(style(extra=[('BACKGROUND', (0, 0), (-1, 0), GREY_LABEL)]))
     flow += [section([Paragraph('Liabilities', head), Spacer(1, 9), li]), Spacer(1, GAP)]
 
