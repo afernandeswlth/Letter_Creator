@@ -304,23 +304,27 @@ _RF_LEFT, _RF_RIGHT = 1979, 8086
 
 def _fill_refinance(table, refis):
     """Fill the Refinance History grid: one row per refinance, left cell
-    "Refinance N" (grey), right cell the notes. Adds/removes rows to fit."""
+    "Refinance N" (grey), right cell the notes. When there are none, leave a
+    single blank row (no "Refinance 1" label). Adds/removes rows to fit."""
     import copy
     from docx.oxml.ns import qn
-    while len(table.rows) < len(refis):
+    rows = refis or ['']  # keep one (blank) row when empty
+    while len(table.rows) < len(rows):
         table._tbl.append(copy.deepcopy(table.rows[-1]._tr))
-    while len(table.rows) > len(refis):
+    while len(table.rows) > len(rows):
         table._tbl.remove(table.rows[-1]._tr)
     # Narrow the "Refinance N" column to match the Background label column.
     gcols = table._tbl.tblGrid.findall(qn('w:gridCol'))
     if len(gcols) >= 2:
         gcols[0].set(qn('w:w'), str(_RF_LEFT))
         gcols[1].set(qn('w:w'), str(_RF_RIGHT))
-    for i, note in enumerate(refis):
+    for i, note in enumerate(rows):
         cells = table.rows[i].cells
-        _set_cell(cells[0], 'Refinance %d' % (i + 1))
+        _set_cell(cells[0], 'Refinance %d' % (i + 1) if refis else '')
         _set_cell(cells[1], note)
-        _shade_cell(cells[0], 'ECEFF1')
+        _shade_cell(cells[0], 'ECEFF1' if refis else 'FFFFFF')
+        _set_cell_width(cells[0], _RF_LEFT)
+        _set_cell_width(cells[1], _RF_RIGHT)
         _set_cell_width(cells[0], _RF_LEFT)
         _set_cell_width(cells[1], _RF_RIGHT)
 
@@ -484,7 +488,7 @@ def _fill_cam(doc, values):
 
     # Refinance History (table 3) — dynamic rows: "Refinance N" | notes.
     try:
-        _fill_refinance(tables[3], _refinance_notes(g('refinanceNotes')))
+        _fill_refinance(tables[3], [r for r in _refinance_notes(g('refinanceNotes')) if r.strip()])
     except IndexError:
         pass
 

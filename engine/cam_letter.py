@@ -256,11 +256,16 @@ def build_cam_pdf(brand_id, v):
     bg.setStyle(style(bar_first=True, label_cols=(0,)))
     flow += [section([bg]), Spacer(1, GAP)]
 
-    # Refinance History — one row per refinance (left "Refinance N", right notes).
-    refis = _refinance_notes(g('refinanceNotes'))
-    rf = Table([[L('Refinance %d' % (i + 1)), V(note)] for i, note in enumerate(refis)],
-               colWidths=rf_cols)
-    rf.setStyle(style(label_cols=(0,)))
+    # Refinance History — a row per (non-empty) refinance: "Refinance N" | notes.
+    # When there are none, leave a single blank row (no "Refinance 1" label).
+    refis = [r for r in _refinance_notes(g('refinanceNotes')) if r.strip()]
+    if refis:
+        rf = Table([[L('Refinance %d' % (i + 1)), V(note)] for i, note in enumerate(refis)],
+                   colWidths=rf_cols)
+        rf.setStyle(style(label_cols=(0,)))
+    else:
+        rf = Table([[V(''), V('')]], colWidths=rf_cols)
+        rf.setStyle(style())
     flow += [section([Paragraph('Refinance History', head), Spacer(1, 9), rf]), Spacer(1, GAP)]
 
     # Liabilities — header row + one row per liability (Type / Balance / Conduct).
@@ -271,26 +276,30 @@ def build_cam_pdf(brand_id, v):
     li.setStyle(style(extra=[('BACKGROUND', (0, 0), (-1, 0), GREY_LABEL)]))
     flow += [section([Paragraph('Liabilities', head), Spacer(1, 9), li]), Spacer(1, GAP)]
 
-    # Credit History (roomy min height for notes)
+    # Credit History — sizes to its content (small floor so empty stays tidy).
     ch_c = RV('creditHistory')
     ch = Table([[B('Credit History')], [ch_c]],
-               colWidths=[CONTENT_W], rowHeights=[None, _rich_h(ch_c, CONTENT_W, 120)])
+               colWidths=[CONTENT_W], rowHeights=[None, _rich_h(ch_c, CONTENT_W, 28)])
     ch.setStyle(style(bar_first=True))
     flow += [section([ch]), Spacer(1, GAP)]
 
-    # Living Costs / Policy exceptions
+    # Living Costs / Policy exceptions — two headers (no spanning bar), sized to
+    # content. bar_first would SPAN the header row and hide the second heading.
     lc_c, pe_c = RV('livingCost'), RV('policyExceptions')
-    lc_h = max(_rich_h(lc_c, half, 0), _rich_h(pe_c, half, 0), 90)
+    lc_h = max(_rich_h(lc_c, half, 0), _rich_h(pe_c, half, 0), 28)
     lcp = Table([[B('Living Costs:'), B('Policy exceptions (including mitigants)')],
                  [lc_c, pe_c]],
                 colWidths=[half, half], rowHeights=[None, lc_h])
-    lcp.setStyle(style(bar_first=True))
+    lcp.setStyle(style(extra=[
+        ('BACKGROUND', (0, 0), (-1, 0), BLUE),
+        ('TOPPADDING', (0, 0), (-1, 0), 1.4), ('BOTTOMPADDING', (0, 0), (-1, 0), 1.4),
+    ]))
     flow += [section([lcp]), Spacer(1, GAP)]
 
     # Final Assessment (auto height)
     fa_c = RV('finalAssessment')
     fa = Table([[B('Final Assesment')], [fa_c]],
-               colWidths=[CONTENT_W], rowHeights=[None, _rich_h(fa_c, CONTENT_W, 60)])
+               colWidths=[CONTENT_W], rowHeights=[None, _rich_h(fa_c, CONTENT_W, 28)])
     fa.setStyle(style(bar_first=True))
     flow += [section([fa]), Spacer(1, GAP)]
 
