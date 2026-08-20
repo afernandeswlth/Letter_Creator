@@ -21,17 +21,25 @@ function zoomOut() {
 }
 
 const previewScroll = ref<HTMLElement | null>(null)
+// Vertical position (0-1 of the document) of each field's section, from the
+// engine — so an edit scrolls the preview to the right place.
+const fieldPositions = ref<Record<string, number>>({})
 let pendingScrollField: string | null = null
 
-// Scroll the preview to roughly where the edited field lands in the document —
-// fields render top-to-bottom in registry order, so use the field's position.
+// Centre the edited field's section in the preview. Uses the engine-reported
+// position; falls back to the field's order when none is available.
 function scrollPreviewToField(fieldId: string) {
-  const idx = fields.value.findIndex(f => f.id === fieldId)
   const el = previewScroll.value
-  if (idx < 0 || !el) return
-  const frac = idx / Math.max(1, fields.value.length - 1)
+  if (!el) return
+  let frac = fieldPositions.value[fieldId]
+  if (frac == null) {
+    const idx = fields.value.findIndex(f => f.id === fieldId)
+    if (idx < 0) return
+    frac = idx / Math.max(1, fields.value.length - 1)
+  }
   nextTick(() => {
-    el.scrollTo({ top: frac * (el.scrollHeight - el.clientHeight), behavior: 'smooth' })
+    const y = frac * el.scrollHeight - el.clientHeight / 2 // centre the section
+    el.scrollTo({ top: Math.max(0, y), behavior: 'smooth' })
   })
 }
 
@@ -42,8 +50,11 @@ async function renderPreview(initial = false) {
   else refreshing.value = true
   error.value = ''
   try {
-    const p = await formPreview(currentType.value.engine, state.value.brand, state.value.fieldValues)
-    if (seq === renderSeq) pages.value = p // latest request wins
+    const r = await formPreview(currentType.value.engine, state.value.brand, state.value.fieldValues)
+    if (seq === renderSeq) {
+      pages.value = r.pages // latest request wins
+      fieldPositions.value = r.positions
+    }
   } catch (e) {
     if (seq === renderSeq) error.value = `Could not render the letter. ${(e as Error).message}`
   } finally {

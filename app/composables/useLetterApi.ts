@@ -213,12 +213,12 @@ export function useLetterApi() {
     letterType: string,
     brand: BrandId,
     values: Record<string, string>,
-  ): Promise<string[]> {
-    const res = await $fetch<{ pages: string[] }>('/api/forms/preview', {
+  ): Promise<{ pages: string[]; positions: Record<string, number> }> {
+    const res = await $fetch<{ pages: string[]; positions?: Record<string, number> }>('/api/forms/preview', {
       method: 'POST',
       body: { letterType, brand: engineBrand(brand), values },
     })
-    return res.pages
+    return { pages: res.pages ?? [], positions: res.positions ?? {} }
   }
 
   /** POST /api/forms/pdf — fetch a form letter's branded PDF as a Blob. */

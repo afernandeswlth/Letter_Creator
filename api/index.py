@@ -347,12 +347,21 @@ def form_docx():
 def form_preview():
     import fitz
     data = request.get_json(force=True, silent=True) or {}
+    letter_type = data.get('letterType', '')
+    brand = data.get('brand', 'wlth')
+    values = data.get('values') or {}
     try:
-        pdf_bytes = cli.build_form_pdf(data.get('letterType', ''), data.get('brand', 'wlth'), data.get('values') or {})
+        # The CAM reports each field's section position (for the preview scroll).
+        positions = {}
+        if letter_type == 'credit-approval-memorandum':
+            import cam_letter
+            pdf_bytes = cam_letter.build_cam_pdf(brand, values, anchors=positions)
+        else:
+            pdf_bytes = cli.build_form_pdf(letter_type, brand, values)
         doc = fitz.open(stream=pdf_bytes, filetype='pdf')
         pages = ['data:image/png;base64,' + base64.b64encode(pg.get_pixmap(dpi=130).tobytes('png')).decode()
                  for pg in doc]
-        return _json({'pages': pages})
+        return _json({'pages': pages, 'positions': positions})
     except Exception as e:  # noqa: BLE001
         return _json({'error': str(e)}, 500)
 

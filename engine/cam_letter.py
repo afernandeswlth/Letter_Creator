@@ -59,6 +59,22 @@ except Exception:  # noqa: BLE001
 
 CAM_TITLE = 'Credit Approval Memorandum (CAM)'
 
+# Which anchored PDF section each CAM field renders in — used to tell the preview
+# where to scroll when a field is edited.
+_FIELD_SECTION = {
+    'date': 'overview', 'borrowers': 'overview', 'exposureAccount': 'overview',
+    'mortgageManager': 'overview',
+    'exposureBalance': 'product', 'exposureInterestType': 'product',
+    'exposureLoanPurpose': 'product', 'proposedSecurity': 'product', 'proposedLvr': 'product',
+    'personalInfo': 'background', 'employment': 'background', 'rentalIncome': 'background',
+    'security': 'background', 'lmi': 'background', 'ndi': 'background',
+    'refinanceNotes': 'refinance', 'liabilities': 'liabilities', 'creditHistory': 'credit',
+    'livingCost': 'living', 'policyExceptions': 'living', 'finalAssessment': 'assessment',
+    'recommendation': 'recommendation', 'recommendedName': 'recommendation',
+    'recommendedDate': 'recommendation', 'recommendedSignature': 'recommendation',
+    'additionalNotes': 'notes',
+}
+
 
 def _refinance_notes(raw):
     """Parse the refinance field (a JSON array of note strings) into a list.
@@ -149,7 +165,10 @@ def _signature_image(data_url, max_w, max_h):
         return None
 
 
-def build_cam_pdf(brand_id, v):
+def build_cam_pdf(brand_id, v, anchors=None):
+    """Render the CAM PDF. If `anchors` (a dict) is given, it's populated with
+    {field_id: vertical_fraction} of where each field's section lands, so the
+    preview can scroll to an edited field."""
     brand = BRANDS.get(brand_id, BRANDS['wlth'])
     esc = PL.esc
 
@@ -216,7 +235,15 @@ def build_cam_pdf(brand_id, v):
             s.append(('BACKGROUND', (c, r0), (c, -1), GREY_LABEL))
         return TableStyle(s + (extra or []))
 
-    def section(flowables):
+    def section(flowables, key=None):
+        # Tag the first inner flowable (KeepTogether dissolves into its content at
+        # layout time, so a tag on the wrapper would be lost) — recorded during
+        # build to give the preview a scroll position.
+        if key and flowables:
+            try:
+                flowables[0]._cam_anchor = key
+            except AttributeError:
+                pass
         return KeepTogether(flowables)
 
     ov_cols = [100.0, CONTENT_W - 100.0]
@@ -234,7 +261,7 @@ def build_cam_pdf(brand_id, v):
                 [L('Account number:'), V(g('exposureAccount'))],
                 [L('Mortgage Manager:'), V(g('mortgageManager'))]], colWidths=ov_cols)
     ov.setStyle(style())
-    flow += [section([Paragraph('Applicant Overview', head), Spacer(1, 9), ov]), Spacer(1, GAP)]
+    flow += [section([Paragraph('Applicant Overview', head), Spacer(1, 9), ov], 'overview'), Spacer(1, GAP)]
 
     # Product Details
     pd = Table([[B('Product Details'), '', '', ''],
@@ -243,7 +270,7 @@ def build_cam_pdf(brand_id, v):
                 [L('Proposed Security'), V(g('proposedSecurity')), L('Proposed LVR'), V(g('proposedLvr'))]],
                colWidths=pd_cols)
     pd.setStyle(style(bar_first=True, label_cols=(0, 2)))
-    flow += [section([pd]), Spacer(1, GAP)]
+    flow += [section([pd], 'product'), Spacer(1, GAP)]
 
     # Background information
     bg_rows = [[B('Background information'), '']]
@@ -254,7 +281,7 @@ def build_cam_pdf(brand_id, v):
         bg_rows.append([L(name), RV(fld) if fld in _RICH_BG else V(g(fld))])
     bg = Table(bg_rows, colWidths=bg_cols)
     bg.setStyle(style(bar_first=True, label_cols=(0,)))
-    flow += [section([bg]), Spacer(1, GAP)]
+    flow += [section([bg], 'background'), Spacer(1, GAP)]
 
     # Refinance History — a row per (non-empty) refinance: "Refinance N" | notes.
     # When there are none, leave a single blank row (no "Refinance 1" label).
@@ -266,7 +293,7 @@ def build_cam_pdf(brand_id, v):
     else:
         rf = Table([[V(''), V('')]], colWidths=rf_cols)
         rf.setStyle(style())
-    flow += [section([Paragraph('Refinance History', head), Spacer(1, 9), rf]), Spacer(1, GAP)]
+    flow += [section([Paragraph('Refinance History', head), Spacer(1, 9), rf], 'refinance'), Spacer(1, GAP)]
 
     # Liabilities — header row + one row per liability (Type / Balance / Conduct).
     li_rows = [[L('Type of Loan'), L('Outstanding Balance / Limit'), L('Conduct')]]
@@ -274,14 +301,14 @@ def build_cam_pdf(brand_id, v):
         li_rows.append([V(r[0]), V(r[1]), V(r[2])])
     li = Table(li_rows, colWidths=li_cols)
     li.setStyle(style(extra=[('BACKGROUND', (0, 0), (-1, 0), GREY_LABEL)]))
-    flow += [section([Paragraph('Liabilities', head), Spacer(1, 9), li]), Spacer(1, GAP)]
+    flow += [section([Paragraph('Liabilities', head), Spacer(1, 9), li], 'liabilities'), Spacer(1, GAP)]
 
     # Credit History — sizes to its content (small floor so empty stays tidy).
     ch_c = RV('creditHistory')
     ch = Table([[B('Credit History')], [ch_c]],
                colWidths=[CONTENT_W], rowHeights=[None, _rich_h(ch_c, CONTENT_W, 28)])
     ch.setStyle(style(bar_first=True))
-    flow += [section([ch]), Spacer(1, GAP)]
+    flow += [section([ch], 'credit'), Spacer(1, GAP)]
 
     # Living Costs / Policy exceptions — two headers (no spanning bar), sized to
     # content. bar_first would SPAN the header row and hide the second heading.
@@ -294,14 +321,14 @@ def build_cam_pdf(brand_id, v):
         ('BACKGROUND', (0, 0), (-1, 0), BLUE),
         ('TOPPADDING', (0, 0), (-1, 0), 1.4), ('BOTTOMPADDING', (0, 0), (-1, 0), 1.4),
     ]))
-    flow += [section([lcp]), Spacer(1, GAP)]
+    flow += [section([lcp], 'living'), Spacer(1, GAP)]
 
     # Final Assessment (auto height)
     fa_c = RV('finalAssessment')
     fa = Table([[B('Final Assesment')], [fa_c]],
                colWidths=[CONTENT_W], rowHeights=[None, _rich_h(fa_c, CONTENT_W, 28)])
     fa.setStyle(style(bar_first=True))
-    flow += [section([fa]), Spacer(1, GAP)]
+    flow += [section([fa], 'assessment'), Spacer(1, GAP)]
 
     # Recommendation + sign-off (kept together; signature box sized to the drawing)
     sig = _signature_image(g('recommendedSignature'), max_w=half - 16, max_h=46)
@@ -322,14 +349,14 @@ def build_cam_pdf(brand_id, v):
         ('TOPPADDING', (0, 0), (-1, 0), 1.4), ('BOTTOMPADDING', (0, 0), (-1, 0), 1.4),
         ('BACKGROUND', (0, 2), (0, 4), GREY_LABEL),
     ]))
-    flow += [section([rec])]
+    flow += [section([rec], 'recommendation')]
 
     # Additional notes below the signature (rich text), only when provided.
     if mtext('additionalNotes').strip():
         notes_c = RV('additionalNotes')
         flow += [Spacer(1, GAP),
                  section([Paragraph('Additional Notes', head), Spacer(1, 6)]
-                         + (notes_c if isinstance(notes_c, list) else [notes_c]))]
+                         + (notes_c if isinstance(notes_c, list) else [notes_c]), 'notes')]
 
     # The header goes on page 1 only; the footer on the last page only.
     class _CamCanvas(canvas.Canvas):
@@ -357,7 +384,19 @@ def build_cam_pdf(brand_id, v):
     # header band, later pages start higher.
     frame1 = Frame(LM, 62, CONTENT_W, PAGE_H - 62 - 62, leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
     frame2 = Frame(LM, 62, CONTENT_W, PAGE_H - 52.6 - 62, leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
-    doc = BaseDocTemplate(buf, pagesize=(PAGE_W, PAGE_H))
+    class _CamDoc(BaseDocTemplate):
+        """Records the page + top-y of each anchored section as it's laid out."""
+        def __init__(self, *a, **k):
+            self._sec_pos = {}
+            BaseDocTemplate.__init__(self, *a, **k)
+
+        def afterFlowable(self, flowable):
+            key = getattr(flowable, '_cam_anchor', None)
+            if key and key not in self._sec_pos:
+                top = self.frame._y + getattr(flowable, 'height', 0)
+                self._sec_pos[key] = (self.page, top)
+
+    doc = _CamDoc(buf, pagesize=(PAGE_W, PAGE_H))
     from reportlab.platypus import NextPageTemplate
     doc.addPageTemplates([
         PageTemplate(id='first', frames=[frame1]),
@@ -365,6 +404,16 @@ def build_cam_pdf(brand_id, v):
     ])
     flow.insert(0, NextPageTemplate('later'))
     doc.build(flow, canvasmaker=_CamCanvas)
+
+    if anchors is not None:
+        npages = max(1, doc.page)
+        sec_frac = {}
+        for key, (page, top) in doc._sec_pos.items():
+            y_from_top = PAGE_H - top  # top-of-page = PAGE_H in page coords
+            sec_frac[key] = ((page - 1) * PAGE_H + y_from_top) / (npages * PAGE_H)
+        for fid, skey in _FIELD_SECTION.items():
+            if skey in sec_frac:
+                anchors[fid] = round(min(1.0, max(0.0, sec_frac[skey])), 4)
     return buf.getvalue()
 
 

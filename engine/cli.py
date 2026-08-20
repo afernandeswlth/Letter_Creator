@@ -132,11 +132,19 @@ def cmd_form_docx(letter_type, brand, values_json):
 def cmd_form_preview(letter_type, brand, values_json):
     import base64
     import fitz
-    pdf = build_form_pdf(letter_type, brand, json.loads(values_json))
+    values = json.loads(values_json)
+    # The CAM reports where each field's section lands, so the preview can scroll
+    # to an edited field.
+    positions = {}
+    if letter_type == 'credit-approval-memorandum':
+        import cam_letter
+        pdf = cam_letter.build_cam_pdf(brand, values, anchors=positions)
+    else:
+        pdf = build_form_pdf(letter_type, brand, values)
     doc = fitz.open(stream=pdf, filetype='pdf')
     pages = ['data:image/png;base64,' + base64.b64encode(pg.get_pixmap(dpi=130).tobytes('png')).decode()
              for pg in doc]
-    print(json.dumps({'pages': pages}))
+    print(json.dumps({'pages': pages, 'positions': positions}))
     return 0
 
 
