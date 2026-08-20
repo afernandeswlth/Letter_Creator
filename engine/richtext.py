@@ -70,10 +70,15 @@ def _alpha(n):
 
 
 def list_marker(kind, number, depth):
-    """The marker for a list item: bullets for 'ul'; decimal → lower-alpha →
-    lower-roman as ordered lists nest deeper (1. / a. / i.)."""
+    """The marker for a list item. Bullets nest disc → circle → square and
+    ordered lists nest decimal → lower-alpha → lower-roman (1. / a. / i.),
+    matching the editor's list CSS so the PDF mirrors what was typed."""
     if kind == 'ul':
-        return '•'
+        if depth <= 1:
+            return '•'      # disc
+        if depth == 2:
+            return '◦'      # circle (white bullet)
+        return '▪'          # square (black small square)
     if depth <= 1:
         return '%d.' % number
     if depth == 2:
@@ -319,7 +324,11 @@ def rich_flow(raw, para_style):
             depth = max(1, blk['indent'])
             indent = 14 * (depth - 1)
             li_style = mk_style(mp, leftIndent=indent + 14, bulletIndent=indent,
-                                spaceBefore=1, spaceAfter=1)
+                                spaceBefore=1, spaceAfter=1,
+                                # Draw the bullet in the body font, not reportlab's
+                                # default Helvetica — Helvetica lacks the circle/square
+                                # glyphs used for nested levels and boxes them.
+                                bulletFontName=para_style.fontName)
             bt = list_marker(blk['bullet'], blk['number'], depth)
             flow.append(Paragraph(text, li_style, bulletText=bt))
         else:
