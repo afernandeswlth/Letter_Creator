@@ -175,7 +175,6 @@ export const LETTER_TYPES: Record<LetterTypeId, LetterType> = {
       { id: 'proposedSecurity', label: 'Proposed Security', type: 'textarea', required: false, default: 'TBA', section: 'Proposed Exposure' },
       { id: 'proposedLvr', label: 'Proposed LVR', type: 'text', required: false, placeholder: '72%', section: 'Proposed Exposure' },
       // Background Information
-      { id: 'backgroundInformation', label: 'Background Information', type: 'textarea', required: false, rows: 3, section: 'Background Information' },
       { id: 'personalInfo', label: 'Personal Info', type: 'richtext', required: false, rows: 5, default: '(MA)\nID Checked – Category 1 (VOI conducted by a Third-Party Certifier)\nPassport (valid)\nDriver’s License (valid)', section: 'Background Information' },
       { id: 'employment', label: 'Employment', type: 'richtext', required: false, rows: 3, default: 'Payslips:\nGross Base Income:\nSalary Credits in:', section: 'Background Information' },
       { id: 'rentalIncome', label: 'Rental Income', type: 'richtext', required: false, rows: 2, section: 'Background Information' },
