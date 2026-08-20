@@ -22,7 +22,10 @@ const focused = ref(false)
 // its line breaks preserved; HTML is used as-is.
 function toDisplayHtml(v: string): string {
   if (!v) return ''
-  if (/<[a-z!/][^>]*>/i.test(v)) return v
+  // Only a plain-text default/import (which contains real newlines) is escaped and
+  // given <br>s. Editor HTML has no raw newlines and must be returned untouched —
+  // escaping it re-escapes entities like &nbsp; to &amp;nbsp; on every keystroke.
+  if (!v.includes('\n')) return v
   return v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')
 }
 
