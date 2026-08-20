@@ -47,7 +47,9 @@ async function runHubspotImport() {
     for (const k of keys) state.value.fieldValues[k] = values[k]!
     if (keys.length) {
       importMsg.value = `Imported ${keys.length} field${keys.length === 1 ? '' : 's'} from HubSpot — complete the fields outlined in red and review the amber (template default) ones below.`
-      // Jump straight to the preview with the editor open; edits apply live.
+      // Jump straight to the preview with the editor open; edits apply live,
+      // and empty/template-default fields get review borders there.
+      state.value.hubspotImported = true
       startEditing.value = true
       next()
     } else {

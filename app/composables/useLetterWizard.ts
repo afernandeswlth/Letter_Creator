@@ -19,6 +19,7 @@ export interface WizardState {
   fieldValues: FieldValues // keyed by LetterTypeField.id
   formMode: 'manual' | 'schedule4' // fill the form by hand, or auto-fill from an upload
   formParsed: boolean // a source doc (Schedule 4) has been read — persists across steps
+  hubspotImported: boolean // this form was prefilled from a HubSpot deal (drives review borders)
   rendered: Party[] // parties with merged letter text
   deliveries: Record<string, { drive: boolean; email: boolean }>
 }
@@ -38,6 +39,7 @@ function initialState(): WizardState {
     fieldValues: {},
     formMode: 'schedule4',
     formParsed: false,
+    hubspotImported: false,
     rendered: [],
     deliveries: {},
   }

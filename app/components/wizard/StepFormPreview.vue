@@ -49,6 +49,25 @@ function isVisible(f: LetterTypeField) {
 const fieldsIn = (section: string) =>
   fields.value.filter((f) => (f.section ?? 'Details') === section && isVisible(f))
 
+// Review borders — only when the form was prefilled from a HubSpot deal: red on
+// empty fields, amber on fields still holding their template default.
+function fieldEmpty(f: LetterTypeField) {
+  const v = draft[f.id] ?? ''
+  if (f.type === 'signature') return !v
+  if (f.type === 'richtext') return v.replace(/<[^>]+>/g, '').replace(/&nbsp;|\s/g, '') === ''
+  return v.trim() === ''
+}
+function reviewMark(f: LetterTypeField): 'red' | 'amber' | null {
+  if (!state.value.hubspotImported || f.type === 'table') return null
+  if (fieldEmpty(f)) return 'red'
+  if (f.default && (draft[f.id] ?? '') === f.default) return 'amber'
+  return null
+}
+const borderClass = (f: LetterTypeField) =>
+  reviewMark(f) === 'red' ? 'border-red-400' : reviewMark(f) === 'amber' ? 'border-amber-400' : 'border-slate-300'
+const ringClass = (f: LetterTypeField) =>
+  reviewMark(f) === 'red' ? 'ring-1 ring-red-400' : reviewMark(f) === 'amber' ? 'ring-1 ring-amber-400' : ''
+
 const editing = ref(false)
 const draft = reactive<Record<string, string>>({})
 
@@ -163,6 +182,11 @@ onMounted(async () => {
         </div>
 
         <div class="flex-1 overflow-y-auto px-5 py-4">
+          <!-- Colour legend for the review borders (HubSpot import only) -->
+          <div v-if="state.hubspotImported" class="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-500">
+            <span class="inline-flex items-center gap-1.5"><span class="inline-block h-3 w-3 rounded border-2 border-red-400" />Needs a value</span>
+            <span class="inline-flex items-center gap-1.5"><span class="inline-block h-3 w-3 rounded border-2 border-amber-400" />Template default — review</span>
+          </div>
           <div v-for="section in sections" :key="section" class="mt-5 first:mt-0">
             <h4 class="border-b border-slate-200 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{{ section }}</h4>
             <div class="mt-3 grid grid-cols-1 gap-4">
@@ -182,6 +206,7 @@ onMounted(async () => {
                   v-else-if="f.type === 'signature'"
                   v-model="draft[f.id]"
                   :placeholder="f.placeholder"
+                  :invalid="reviewMark(f) === 'red'"
                   class="mt-1.5"
                 />
                 <RichTextEditor
@@ -189,7 +214,8 @@ onMounted(async () => {
                   v-model="draft[f.id]"
                   :placeholder="f.placeholder"
                   :min-height="f.rows ? `${Math.max(4, f.rows) * 1.5}rem` : undefined"
-                  class="mt-1.5"
+                  class="mt-1.5 rounded-lg"
+                  :class="ringClass(f)"
                 />
                 <textarea
                   v-else-if="f.type === 'textarea'"
@@ -197,13 +223,15 @@ onMounted(async () => {
                   v-model="draft[f.id]"
                   :rows="f.rows ?? (f.id === 'specialConditions' ? 6 : 2)"
                   :placeholder="f.placeholder"
-                  class="mt-1.5 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm leading-relaxed shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm leading-relaxed shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  :class="borderClass(f)"
                 />
                 <select
                   v-else-if="f.type === 'select'"
                   :id="`edit-${f.id}`"
                   v-model="draft[f.id]"
-                  class="mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  class="mt-1.5 block w-full rounded-lg border bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  :class="borderClass(f)"
                 >
                   <option v-for="opt in f.options" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
                 </select>
@@ -213,7 +241,8 @@ onMounted(async () => {
                   v-model="draft[f.id]"
                   :type="f.type === 'email' ? 'email' : 'text'"
                   :placeholder="f.placeholder"
-                  class="mt-1.5 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  :class="borderClass(f)"
                 />
 
                 <p v-if="f.help" class="mt-1 text-xs text-slate-400">{{ f.help }}</p>

@@ -49,6 +49,11 @@ _FDIR = os.path.join(HERE, 'assets', 'fonts')
 try:
     pdfmetrics.registerFont(TTFont('Carlito', os.path.join(_FDIR, 'Carlito-Regular.ttf')))
     pdfmetrics.registerFont(TTFont('Carlito-Bold', os.path.join(_FDIR, 'Carlito-Bold.ttf')))
+    pdfmetrics.registerFont(TTFont('Carlito-Italic', os.path.join(_FDIR, 'Carlito-Italic.ttf')))
+    pdfmetrics.registerFont(TTFont('Carlito-BoldItalic', os.path.join(_FDIR, 'Carlito-BoldItalic.ttf')))
+    # Map the family so Paragraph <b>/<i> switch to the right member (rich text).
+    pdfmetrics.registerFontFamily('Carlito', normal='Carlito', bold='Carlito-Bold',
+                                  italic='Carlito-Italic', boldItalic='Carlito-BoldItalic')
 except Exception:  # noqa: BLE001
     FONT, BOLD = 'Helvetica', 'Helvetica-Bold'
 
