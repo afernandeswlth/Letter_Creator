@@ -125,16 +125,17 @@ class _Parser(HTMLParser):
         if self._line:
             self._newline()
         has_text = any(any(r['text'].strip() for r in ln) for ln in self._lines)
-        if has_text:
+        # Keep a list item even when it's empty — the browser shows it and numbers
+        # it, so dropping it here made the PDF numbering jump (2 → 7). Empty content
+        # outside a list is a paragraph gap.
+        if has_text or self._bullet is not None:
             self.blocks.append({
                 'bullet': self._bullet[0] if self._bullet else None,
                 'number': self._bullet[1] if self._bullet else 0,
                 'indent': self._bullet[2] if self._bullet else 0,
-                'lines': self._lines,
+                'lines': self._lines or [[]],
             })
-        elif self._lines and self._bullet is None:
-            # A blank line outside a list is a paragraph gap; an empty list item
-            # (e.g. a parent that only holds a nested list) is dropped.
+        elif self._lines:
             self.blocks.append({'bullet': None, 'number': 0, 'indent': 0, 'lines': [[]]})
         self._lines = []
         self._line = []
@@ -149,7 +150,16 @@ class _Parser(HTMLParser):
             return
         if tag in ('ul', 'ol'):
             self._flush()
-            self._lists.append({'ordered': tag == 'ol', 'count': 0})
+            # A nested list closes its parent item's own line, so the parent <li>
+            # doesn't also emit an empty numbered row when it ends.
+            self._bullet = None
+            start = 0
+            if tag == 'ol':
+                try:
+                    start = max(0, int(a.get('start', '1')) - 1)  # honour <ol start="N">
+                except ValueError:
+                    start = 0
+            self._lists.append({'ordered': tag == 'ol', 'count': start})
             self._elstack.append(undo)
             return
         if tag == 'li':

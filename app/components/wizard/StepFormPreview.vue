@@ -10,6 +10,16 @@ const refreshing = ref(false)  // live update (keeps the current preview visible
 const error = ref('')
 let renderSeq = 0
 
+// Preview zoom (1 = fit). Buttons step 25%; zooming past the column scrolls.
+const zoom = ref(1)
+const zoomPct = computed(() => Math.round(zoom.value * 100))
+function zoomIn() {
+  zoom.value = Math.min(2, Math.round((zoom.value + 0.25) * 100) / 100)
+}
+function zoomOut() {
+  zoom.value = Math.max(0.5, Math.round((zoom.value - 0.25) * 100) / 100)
+}
+
 async function renderPreview(initial = false) {
   if (!currentType.value) return
   const seq = ++renderSeq
@@ -117,7 +127,17 @@ onMounted(async () => {
         <h2 class="text-lg font-semibold text-slate-900">Preview</h2>
         <p class="mt-1 text-sm text-slate-500">Review the letter before saving and sending.</p>
       </div>
-      <div class="flex flex-none flex-col items-stretch gap-2">
+      <div class="flex flex-none items-center gap-2">
+        <!-- Zoom -->
+        <div class="flex items-center gap-0.5 rounded-lg border border-slate-200 bg-white p-0.5">
+          <button type="button" title="Zoom out" :disabled="zoom <= 0.5" class="flex h-8 w-8 items-center justify-center rounded-md text-slate-600 transition hover:bg-slate-100 disabled:opacity-40" @click="zoomOut">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /></svg>
+          </button>
+          <span class="w-11 text-center text-xs font-medium tabular-nums text-slate-600">{{ zoomPct }}%</span>
+          <button type="button" title="Zoom in" :disabled="zoom >= 2" class="flex h-8 w-8 items-center justify-center rounded-md text-slate-600 transition hover:bg-slate-100 disabled:opacity-40" @click="zoomIn">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+          </button>
+        </div>
         <button
           type="button"
           class="inline-flex items-center justify-center gap-2 rounded-lg border border-transparent px-4 py-2 text-sm font-semibold text-white transition"
@@ -138,7 +158,7 @@ onMounted(async () => {
     <div class="mt-5 flex flex-col gap-6 lg:flex-row lg:items-start">
       <!-- Preview (left) — takes the remaining width so the PDF is large -->
       <div :class="editing ? 'lg:sticky lg:top-6 lg:flex-1 lg:min-w-0 lg:self-start' : 'w-full'">
-        <div class="relative max-h-[82vh] overflow-y-auto rounded-xl border border-slate-200 bg-slate-200/70 p-4 sm:p-6">
+        <div class="relative max-h-[82vh] overflow-auto rounded-xl border border-slate-200 bg-slate-200/70 p-4 sm:p-6">
           <div v-if="loading" class="flex items-center justify-center py-24">
             <div class="flex items-center gap-2 text-sm text-slate-500">
               <svg class="h-5 w-5 animate-spin text-blue-600" viewBox="0 0 24 24" fill="none">
@@ -149,7 +169,11 @@ onMounted(async () => {
             </div>
           </div>
           <p v-else-if="error" class="py-24 text-center text-sm text-red-600">{{ error }}</p>
-          <div v-else class="mx-auto flex max-w-4xl flex-col gap-4">
+          <div
+            v-else
+            class="mx-auto flex flex-col gap-4"
+            :style="{ width: `${zoom * 56}rem`, maxWidth: zoom <= 1 ? '100%' : 'none' }"
+          >
             <img
               v-for="(page, i) in pages"
               :key="i"
