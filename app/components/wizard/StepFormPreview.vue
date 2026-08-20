@@ -136,9 +136,9 @@ onMounted(async () => {
     <!-- Two columns while editing: the preview stays put on the left and the
          "Edit letter fields" panel scrolls on its own on the right. -->
     <div class="mt-5 flex flex-col gap-6 lg:flex-row lg:items-start">
-      <!-- Preview (left) -->
-      <div :class="editing ? 'lg:sticky lg:top-6 lg:w-1/2 lg:flex-none lg:self-start' : 'w-full'">
-        <div class="relative max-h-[78vh] overflow-y-auto rounded-xl border border-slate-200 bg-slate-200/70 p-4 sm:p-6">
+      <!-- Preview (left) — takes the remaining width so the PDF is large -->
+      <div :class="editing ? 'lg:sticky lg:top-6 lg:flex-1 lg:min-w-0 lg:self-start' : 'w-full'">
+        <div class="relative max-h-[82vh] overflow-y-auto rounded-xl border border-slate-200 bg-slate-200/70 p-4 sm:p-6">
           <div v-if="loading" class="flex items-center justify-center py-24">
             <div class="flex items-center gap-2 text-sm text-slate-500">
               <svg class="h-5 w-5 animate-spin text-blue-600" viewBox="0 0 24 24" fill="none">
@@ -149,7 +149,7 @@ onMounted(async () => {
             </div>
           </div>
           <p v-else-if="error" class="py-24 text-center text-sm text-red-600">{{ error }}</p>
-          <div v-else class="mx-auto flex max-w-3xl flex-col gap-4">
+          <div v-else class="mx-auto flex max-w-4xl flex-col gap-4">
             <img
               v-for="(page, i) in pages"
               :key="i"
@@ -172,7 +172,7 @@ onMounted(async () => {
       <!-- Inline editor (right): its own scroll, header + apply bar pinned -->
       <div
         v-if="editing"
-        class="flex max-h-[78vh] flex-col overflow-hidden rounded-xl border border-slate-200 bg-slate-50/70 lg:w-1/2 lg:min-w-0 lg:flex-1"
+        class="flex max-h-[82vh] flex-col overflow-hidden rounded-xl border border-slate-200 bg-slate-50/70 lg:w-[380px] lg:flex-none"
       >
         <div class="flex flex-none items-center justify-between border-b border-slate-200 px-5 py-3">
           <h3 class="text-sm font-semibold text-slate-900">Edit letter fields</h3>
