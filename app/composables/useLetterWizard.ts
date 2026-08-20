@@ -141,5 +141,8 @@ export function useLetterWizard() {
     state.value.brand = brand
   }
 
-  return { state, currentBrand, currentType, theme, themeClasses, steps, formFilename, reset, resetForm, chooseType, goTo, next, back, setBrand, confirmingHome, requestGoHome, cancelGoHome, confirmGoHome, confirmingRestart, requestRestart, cancelRestart, confirmRestart }
+  // When a HubSpot import skips straight to the preview, the editor opens itself.
+  const startEditing = useState<boolean>('letter-start-editing', () => false)
+
+  return { state, currentBrand, currentType, theme, themeClasses, steps, formFilename, reset, resetForm, chooseType, goTo, next, back, setBrand, startEditing, confirmingHome, requestGoHome, cancelGoHome, confirmGoHome, confirmingRestart, requestRestart, cancelRestart, confirmRestart }
 }

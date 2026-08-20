@@ -1,31 +1,38 @@
 <script setup lang="ts">
 import type { LetterTypeField } from '~/types'
 
-const { state, currentType, back, next, themeClasses } = useLetterWizard()
+const { state, currentType, back, next, themeClasses, startEditing } = useLetterWizard()
 const { formPreview } = useLetterApi()
 
 const pages = ref<string[]>([])
-const loading = ref(false)
+const loading = ref(false)     // initial render (blocks the preview)
+const refreshing = ref(false)  // live update (keeps the current preview visible)
 const error = ref('')
+let renderSeq = 0
 
-async function load() {
+async function renderPreview(initial = false) {
   if (!currentType.value) return
-  loading.value = true
+  const seq = ++renderSeq
+  if (initial) loading.value = true
+  else refreshing.value = true
   error.value = ''
   try {
-    pages.value = await formPreview(currentType.value.engine, state.value.brand, state.value.fieldValues)
+    const p = await formPreview(currentType.value.engine, state.value.brand, state.value.fieldValues)
+    if (seq === renderSeq) pages.value = p // latest request wins
   } catch (e) {
-    error.value = `Could not render the letter. ${(e as Error).message}`
+    if (seq === renderSeq) error.value = `Could not render the letter. ${(e as Error).message}`
   } finally {
-    loading.value = false
+    if (seq === renderSeq) {
+      loading.value = false
+      refreshing.value = false
+    }
   }
 }
-onMounted(load)
 
-// --- Inline edit of every letter field, with re-render on apply ------------
+// --- Inline edit of every letter field, applied live --------------------------
 // The editable fields (and their order/sections) come straight from the letter
-// type's registry, so the editor mirrors the letter: Applicant Overview →
-// Product Details → Security & Conditions.
+// type's registry, so the editor mirrors the letter. Edits flow to the letter
+// values immediately and re-render the preview (debounced) — no Apply step.
 const fields = computed<LetterTypeField[]>(() => currentType.value?.fields ?? [])
 const sections = computed(() => {
   const seen: string[] = []
@@ -45,29 +52,43 @@ const fieldsIn = (section: string) =>
 const editing = ref(false)
 const draft = reactive<Record<string, string>>({})
 
+let skipWatch = false
 function syncDraft() {
+  skipWatch = true // seeding the draft shouldn't count as an edit
   for (const f of fields.value) draft[f.id] = state.value.fieldValues[f.id] ?? ''
+  nextTick(() => { skipWatch = false })
 }
-const dirty = computed(() =>
-  fields.value.some((f) => (draft[f.id] ?? '') !== (state.value.fieldValues[f.id] ?? '')),
+function openEditor() {
+  syncDraft()
+  editing.value = true
+}
+function toggleEditor() {
+  if (editing.value) editing.value = false
+  else openEditor()
+}
+
+// Live: push edits to the letter values and re-render the preview, debounced so
+// the engine isn't hit on every keystroke.
+let debounceT: ReturnType<typeof setTimeout> | undefined
+watch(
+  draft,
+  () => {
+    if (skipWatch) return
+    for (const f of fields.value) state.value.fieldValues[f.id] = draft[f.id] ?? ''
+    clearTimeout(debounceT)
+    debounceT = setTimeout(() => renderPreview(false), 600)
+  },
+  { deep: true },
 )
 
-function toggleEditor() {
-  if (editing.value) {
-    editing.value = false
-  } else {
-    syncDraft() // start from the current values
-    editing.value = true
+onMounted(async () => {
+  await renderPreview(true)
+  // A HubSpot import jumps straight here with the editor open.
+  if (startEditing.value) {
+    startEditing.value = false
+    openEditor()
   }
-}
-function revert() {
-  syncDraft()
-}
-async function applyChanges() {
-  for (const f of fields.value) state.value.fieldValues[f.id] = draft[f.id] ?? ''
-  await load() // regenerate the preview with the edited values
-  editing.value = false // close the editor once changes are applied
-}
+})
 </script>
 
 <template>
@@ -117,6 +138,14 @@ async function applyChanges() {
               :alt="`Page ${i + 1}`"
               class="w-full rounded-md bg-white shadow ring-1 ring-slate-300"
             />
+          </div>
+          <!-- Live-update badge: the previous preview stays visible while it re-renders -->
+          <div v-if="refreshing && !loading" class="pointer-events-none sticky bottom-2 mx-auto flex w-max items-center gap-1.5 rounded-full bg-white/95 px-3 py-1 text-xs font-medium text-slate-600 shadow ring-1 ring-slate-200">
+            <svg class="h-3.5 w-3.5 animate-spin text-blue-600" viewBox="0 0 24 24" fill="none">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+            </svg>
+            Updating preview…
           </div>
         </div>
       </div>
@@ -193,28 +222,13 @@ async function applyChanges() {
           </div>
         </div>
 
-        <div v-if="dirty" class="flex flex-none items-center gap-3 border-t border-slate-200 bg-white/60 px-5 py-3">
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-40"
-            :class="themeClasses.btn"
-            :disabled="loading"
-            @click="applyChanges"
-          >
-            <svg v-if="loading" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-            </svg>
-            {{ loading ? 'Applying…' : 'Apply changes' }}
-          </button>
-          <button
-            type="button"
-            class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            @click="revert"
-          >
-            Revert
-          </button>
-          <span class="text-xs font-medium text-amber-600">Unsaved changes</span>
+        <div class="flex flex-none items-center gap-2 border-t border-slate-200 bg-white/60 px-5 py-2.5 text-xs font-medium text-slate-500">
+          <svg v-if="refreshing" class="h-3.5 w-3.5 animate-spin text-blue-600" viewBox="0 0 24 24" fill="none">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+          </svg>
+          <svg v-else class="h-3.5 w-3.5 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7" /></svg>
+          {{ refreshing ? 'Updating preview…' : 'Changes apply as you type' }}
         </div>
       </div>
     </div>

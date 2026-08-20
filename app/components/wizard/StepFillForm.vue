@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { LetterTypeField } from '~/types'
 
-const { state, currentType, next, themeClasses } = useLetterWizard()
+const { state, currentType, next, themeClasses, startEditing } = useLetterWizard()
 const { parseFormSource, importHubspotDeal } = useLetterApi()
 
 const showErrors = ref(false)
@@ -47,8 +47,9 @@ async function runHubspotImport() {
     for (const k of keys) state.value.fieldValues[k] = values[k]!
     if (keys.length) {
       importMsg.value = `Imported ${keys.length} field${keys.length === 1 ? '' : 's'} from HubSpot — complete the fields outlined in red and review the amber (template default) ones below.`
-      entryMode.value = 'manual' // reveal the (now prefilled) form
-      prefilled.value = true // flag remaining empty fields red
+      // Jump straight to the preview with the editor open; edits apply live.
+      startEditing.value = true
+      next()
     } else {
       importErr.value = 'That deal had no matching fields to import.'
     }
