@@ -18,9 +18,18 @@ const emit = defineEmits<{ (e: 'update:modelValue', v: string): void }>()
 const el = ref<HTMLElement | null>(null)
 const focused = ref(false)
 
+// A plain-text value (e.g. a field's default, or a HubSpot import) is shown with
+// its line breaks preserved; HTML is used as-is.
+function toDisplayHtml(v: string): string {
+  if (!v) return ''
+  if (/<[a-z!/][^>]*>/i.test(v)) return v
+  return v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')
+}
+
 // Keep the DOM in sync with the model without clobbering the caret while typing.
 function setHtml(v: string) {
-  if (el.value && el.value.innerHTML !== (v || '')) el.value.innerHTML = v || ''
+  const html = toDisplayHtml(v || '')
+  if (el.value && el.value.innerHTML !== html) el.value.innerHTML = html
 }
 onMounted(() => setHtml(props.modelValue))
 watch(
@@ -108,6 +117,15 @@ function pickColor(hex: string) {
           <button v-for="c in COLORS" :key="c.hex" type="button" :title="c.name" class="flex h-7 items-center justify-center rounded-md ring-1 ring-inset ring-slate-200 transition hover:scale-105" :style="{ backgroundColor: c.hex }" @mousedown.prevent @click="pickColor(c.hex)" />
         </div>
       </div>
+
+      <span class="mx-1 h-5 w-px bg-slate-200" />
+
+      <button type="button" title="Bullet list" class="tb-btn px-2" @mousedown.prevent @click="cmd('insertUnorderedList')">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13" /><circle cx="3.5" cy="6" r="1.2" fill="currentColor" stroke="none" /><circle cx="3.5" cy="12" r="1.2" fill="currentColor" stroke="none" /><circle cx="3.5" cy="18" r="1.2" fill="currentColor" stroke="none" /></svg>
+      </button>
+      <button type="button" title="Numbered list" class="tb-btn px-2" @mousedown.prevent @click="cmd('insertOrderedList')">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6h11M10 12h11M10 18h11M4 6h.01M3 12h1.5c.4 0 .5.3.2.6L3 14h1.5M3.5 18h1c.6 0 .6.9 0 .9H3.4" /></svg>
+      </button>
 
       <span class="mx-1 h-5 w-px bg-slate-200" />
 

@@ -13,7 +13,9 @@ Word document (engine/docx_letter.py).
 import io
 import json
 import os
+import re
 
+import richtext
 from reportlab.lib import colors
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.utils import ImageReader
@@ -164,6 +166,19 @@ def build_cam_pdf(brand_id, v):
     def V(t):
         return Paragraph((esc(t) or '&nbsp;').replace('\n', '<br/>'), val)
 
+    # Rich-text fields (edited in RichTextEditor) render with their formatting and
+    # bullet/numbered lists; a plain value falls back to the ordinary cell.
+    def RV(key):
+        raw = g(key)
+        if raw and richtext.looks_like_html(raw):
+            return richtext.rich_flow(raw, val)
+        return V(raw)
+
+    def mtext(key):
+        """Plain text of a (possibly rich) field, for measuring row heights."""
+        raw = g(key)
+        return re.sub(r'<[^>]+>', ' ', raw) if raw and richtext.looks_like_html(raw) else raw
+
     def B(t):
         return Paragraph(esc(t), barp)
 
@@ -215,10 +230,11 @@ def build_cam_pdf(brand_id, v):
 
     # Background information
     bg_rows = [[B('Background information'), '']]
+    _RICH_BG = {'personalInfo', 'employment', 'rentalIncome', 'security'}
     for name, fld in [('Personal Info', 'personalInfo'), ('Employment', 'employment'),
                       ('Rental Income', 'rentalIncome'), ('Security', 'security'),
                       ('LMI', 'lmi'), ('NDI', 'ndi')]:
-        bg_rows.append([L(name), V(g(fld))])
+        bg_rows.append([L(name), RV(fld) if fld in _RICH_BG else V(g(fld))])
     bg = Table(bg_rows, colWidths=bg_cols)
     bg.setStyle(style(bar_first=True, label_cols=(0,)))
     flow += [section([bg]), Spacer(1, GAP)]
@@ -239,22 +255,22 @@ def build_cam_pdf(brand_id, v):
     flow += [section([Paragraph('Liabilities', head), Spacer(1, 9), li]), Spacer(1, GAP)]
 
     # Credit History (roomy min height for notes)
-    ch = Table([[B('Credit History')], [V(g('creditHistory'))]],
-               colWidths=[CONTENT_W], rowHeights=[None, _min_h(g('creditHistory'), val, CONTENT_W, 120)])
+    ch = Table([[B('Credit History')], [RV('creditHistory')]],
+               colWidths=[CONTENT_W], rowHeights=[None, _min_h(mtext('creditHistory'), val, CONTENT_W, 120)])
     ch.setStyle(style(bar_first=True))
     flow += [section([ch]), Spacer(1, GAP)]
 
     # Living Costs / Policy exceptions
-    lc_h = _min_h(g('livingCost'), val, half, 90, g('policyExceptions'))
+    lc_h = _min_h(mtext('livingCost'), val, half, 90, mtext('policyExceptions'))
     lcp = Table([[B('Living Costs:'), B('Policy exceptions (including mitigants)')],
-                 [V(g('livingCost')), V(g('policyExceptions'))]],
+                 [RV('livingCost'), RV('policyExceptions')]],
                 colWidths=[half, half], rowHeights=[None, lc_h])
     lcp.setStyle(style(bar_first=True))
     flow += [section([lcp]), Spacer(1, GAP)]
 
     # Final Assessment (auto height)
-    fa = Table([[B('Final Assesment')], [V(g('finalAssessment'))]],
-               colWidths=[CONTENT_W], rowHeights=[None, _min_h(g('finalAssessment'), val, CONTENT_W, 60)])
+    fa = Table([[B('Final Assesment')], [RV('finalAssessment')]],
+               colWidths=[CONTENT_W], rowHeights=[None, _min_h(mtext('finalAssessment'), val, CONTENT_W, 60)])
     fa.setStyle(style(bar_first=True))
     flow += [section([fa]), Spacer(1, GAP)]
 

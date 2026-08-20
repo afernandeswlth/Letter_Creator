@@ -240,13 +240,19 @@ _CAM_FILL = {
     (1, 1, 1): 'exposureBalance', (1, 1, 3): 'exposureBalance',
     (1, 2, 1): 'exposureInterestType', (1, 2, 3): 'exposureLoanPurpose',
     (1, 3, 1): 'proposedSecurity', (1, 3, 3): 'proposedLvr',
-    (2, 1, 1): 'personalInfo', (2, 2, 1): 'employment', (2, 3, 1): 'rentalIncome',
-    (2, 4, 1): 'security', (2, 5, 1): 'lmi', (2, 6, 1): 'ndi',
-    # tables 3 (Refinance) and 4 (Liabilities) are filled dynamically below.
-    (5, 1, 0): 'creditHistory',
-    (6, 1, 0): 'livingCost', (6, 1, 1): 'policyExceptions',
-    (7, 1, 0): 'finalAssessment', (7, 3, 0): 'recommendation',
+    (2, 5, 1): 'lmi', (2, 6, 1): 'ndi',
+    # tables 3 (Refinance) and 4 (Liabilities) fill dynamically; the rich-text
+    # narrative cells fill via _CAM_RICH below.
+    (7, 3, 0): 'recommendation',
     (7, 4, 1): 'recommendedName', (7, 5, 1): 'recommendedDate',
+}
+
+# Narrative cells edited in the rich-text editor — filled with formatting
+# (bold/italic/underline/colour/size) and bullet/numbered lists preserved.
+_CAM_RICH = {
+    (2, 1, 1): 'personalInfo', (2, 2, 1): 'employment', (2, 3, 1): 'rentalIncome',
+    (2, 4, 1): 'security', (5, 1, 0): 'creditHistory',
+    (6, 1, 0): 'livingCost', (6, 1, 1): 'policyExceptions', (7, 1, 0): 'finalAssessment',
 }
 
 
@@ -341,6 +347,64 @@ def _table_rows(raw, ncols, min_rows=1):
     return rows
 
 
+def _fill_richtext_cell(cell, html):
+    """Fill a table cell from rich-text editor HTML — bold/italic/underline/colour/
+    size runs and bullet/numbered lists. A plain (non-HTML) value uses _set_cell."""
+    import richtext
+    from docx.shared import Pt, RGBColor
+    if not html or not richtext.looks_like_html(html):
+        _set_cell(cell, html or '')
+        return
+    # Base font from the cell's template run, so new runs match the cell style.
+    base_name, base_size, base_style = None, None, cell.paragraphs[0].style
+    if cell.paragraphs[0].runs:
+        f0 = cell.paragraphs[0].runs[0].font
+        base_name, base_size = f0.name, f0.size
+    for tbl in cell.tables:
+        tbl._element.getparent().remove(tbl._element)
+    for extra in cell.paragraphs[1:]:
+        extra._element.getparent().remove(extra._element)
+    first = cell.paragraphs[0]
+    for r in list(first.runs):
+        r._element.getparent().remove(r._element)
+
+    def _style_run(r, override_pt=None):
+        if base_name:
+            r.font.name = base_name
+        if base_size:
+            r.font.size = base_size
+        if override_pt:
+            r.font.size = Pt(override_pt)
+
+    used = False
+    for blk in richtext.parse_blocks(html):
+        p = first if not used else cell.add_paragraph(style=base_style)
+        used = True
+        if blk['bullet']:
+            p.paragraph_format.left_indent = Pt(12 + 12 * max(0, blk['indent'] - 1))
+            prefix = '• ' if blk['bullet'] == 'ul' else ('%d. ' % blk['number'])
+            _style_run(p.add_run(prefix))
+        for li, line in enumerate(blk['lines']):
+            if li > 0:
+                (p.runs[-1] if p.runs else p.add_run()).add_break()
+            for run in line:
+                r = p.add_run(run['text'])
+                _style_run(r, run.get('pt'))
+                if run['b']:
+                    r.bold = True
+                if run['i']:
+                    r.italic = True
+                if run['u']:
+                    r.underline = True
+                if run.get('color'):
+                    try:
+                        r.font.color.rgb = RGBColor.from_string(run['color'].lstrip('#').upper())
+                    except (ValueError, KeyError):
+                        pass
+    if not used:
+        _set_cell(cell, '')
+
+
 def _fill_liabilities(table, rows):
     """Fill the Liabilities grid below its header row: one row per liability
     (Type of Loan | Outstanding Balance/Limit | Conduct). Adds/removes rows."""
@@ -388,6 +452,13 @@ def _fill_cam(doc, values):
         _fill_liabilities(tables[4], _table_rows(g('liabilities'), 3, min_rows=1))
     except IndexError:
         pass
+
+    # Rich-text narrative cells — formatting + bullet/numbered lists.
+    for (ti, ri, ci), field in _CAM_RICH.items():
+        try:
+            _fill_richtext_cell(tables[ti].rows[ri].cells[ci], g(field))
+        except IndexError:
+            pass
 
     # Clear any remaining #### placeholders (unmapped value cells, e.g. the blank
     # Name row and the extra refinance/liabilities grid cells).

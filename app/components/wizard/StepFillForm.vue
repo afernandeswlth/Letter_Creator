@@ -368,6 +368,7 @@ function onNext() {
               v-else-if="f.type === 'richtext'"
               v-model="state.fieldValues[f.id]"
               :placeholder="f.placeholder"
+              :min-height="f.rows ? `${Math.max(4, f.rows) * 1.5}rem` : undefined"
               class="mt-1.5"
             />
             <textarea
