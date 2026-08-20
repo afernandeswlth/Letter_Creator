@@ -20,6 +20,21 @@ function zoomOut() {
   zoom.value = Math.max(0.5, Math.round((zoom.value - 0.25) * 100) / 100)
 }
 
+const previewScroll = ref<HTMLElement | null>(null)
+let pendingScrollField: string | null = null
+
+// Scroll the preview to roughly where the edited field lands in the document —
+// fields render top-to-bottom in registry order, so use the field's position.
+function scrollPreviewToField(fieldId: string) {
+  const idx = fields.value.findIndex(f => f.id === fieldId)
+  const el = previewScroll.value
+  if (idx < 0 || !el) return
+  const frac = idx / Math.max(1, fields.value.length - 1)
+  nextTick(() => {
+    el.scrollTo({ top: frac * (el.scrollHeight - el.clientHeight), behavior: 'smooth' })
+  })
+}
+
 async function renderPreview(initial = false) {
   if (!currentType.value) return
   const seq = ++renderSeq
@@ -35,6 +50,10 @@ async function renderPreview(initial = false) {
     if (seq === renderSeq) {
       loading.value = false
       refreshing.value = false
+      if (!initial && pendingScrollField) {
+        scrollPreviewToField(pendingScrollField)
+        pendingScrollField = null
+      }
     }
   }
 }
@@ -61,14 +80,29 @@ const fieldsIn = (section: string) =>
 
 // Review borders — only when the form was prefilled from a HubSpot deal: red on
 // empty fields, amber on fields still holding their template default.
+// A few fields opt out: Mortgage Manager (always WLTH) and Additional Notes
+// (optional) never get a review border.
+const NO_REVIEW = new Set(['mortgageManager', 'additionalNotes'])
+function tableEmpty(v: string) {
+  if (!v) return true
+  try {
+    const a = JSON.parse(v)
+    if (Array.isArray(a)) {
+      return a.every(row =>
+        Array.isArray(row) ? row.every(c => !String(c).trim()) : !String(row).trim())
+    }
+  } catch { /* not JSON */ }
+  return !v.trim()
+}
 function fieldEmpty(f: LetterTypeField) {
   const v = draft[f.id] ?? ''
   if (f.type === 'signature') return !v
+  if (f.type === 'table') return tableEmpty(v)
   if (f.type === 'richtext') return v.replace(/<[^>]+>/g, '').replace(/&nbsp;|\s/g, '') === ''
   return v.trim() === ''
 }
 function reviewMark(f: LetterTypeField): 'red' | 'amber' | null {
-  if (!state.value.hubspotImported || f.type === 'table') return null
+  if (!state.value.hubspotImported || NO_REVIEW.has(f.id)) return null
   if (fieldEmpty(f)) return 'red'
   if (f.default && (draft[f.id] ?? '') === f.default) return 'amber'
   return null
@@ -103,6 +137,9 @@ watch(
   draft,
   () => {
     if (skipWatch) return
+    // Remember which field changed so the preview can jump to it after re-render.
+    const changed = fields.value.find(f => (state.value.fieldValues[f.id] ?? '') !== (draft[f.id] ?? ''))
+    if (changed) pendingScrollField = changed.id
     for (const f of fields.value) state.value.fieldValues[f.id] = draft[f.id] ?? ''
     clearTimeout(debounceT)
     debounceT = setTimeout(() => renderPreview(false), 600)
@@ -158,7 +195,7 @@ onMounted(async () => {
     <div class="mt-5 flex flex-col gap-6 lg:flex-row lg:items-start">
       <!-- Preview (left) — takes the remaining width so the PDF is large -->
       <div :class="editing ? 'lg:sticky lg:top-6 lg:flex-1 lg:min-w-0 lg:self-start' : 'w-full'">
-        <div class="relative max-h-[82vh] overflow-auto rounded-xl border border-slate-200 bg-slate-200/70 p-4 sm:p-6">
+        <div ref="previewScroll" class="relative max-h-[82vh] overflow-auto rounded-xl border border-slate-200 bg-slate-200/70 p-4 sm:p-6">
           <div v-if="loading" class="flex items-center justify-center py-24">
             <div class="flex items-center gap-2 text-sm text-slate-500">
               <svg class="h-5 w-5 animate-spin text-blue-600" viewBox="0 0 24 24" fill="none">
@@ -225,6 +262,7 @@ onMounted(async () => {
                   :flat="f.flat"
                   :show-header="f.showHeader"
                   :max-rows="f.maxRows"
+                  :class="ringClass(f)"
                 />
                 <SignaturePad
                   v-else-if="f.type === 'signature'"
