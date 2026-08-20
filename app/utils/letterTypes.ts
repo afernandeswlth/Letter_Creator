@@ -193,6 +193,7 @@ export const LETTER_TYPES: Record<LetterTypeId, LetterType> = {
       { id: 'recommendedName', label: 'Assessor Name', type: 'text', required: true, section: 'Assessment' },
       { id: 'recommendedDate', label: 'Date Signed', type: 'date', required: false, section: 'Assessment' },
       { id: 'recommendedSignature', label: 'Signature', type: 'signature', required: true, help: 'Sign in the box — this is placed at the Signature line in the PDF and Word doc.', section: 'Assessment' },
+      { id: 'additionalNotes', label: 'Additional Notes', type: 'richtext', required: false, rows: 4, placeholder: 'Any additional notes to appear below the signature…', help: 'Appears below the signature on the PDF and Word document.', section: 'Assessment' },
     ],
   },
 

@@ -310,6 +310,13 @@ def build_cam_pdf(brand_id, v):
     ]))
     flow += [section([rec])]
 
+    # Additional notes below the signature (rich text), only when provided.
+    if mtext('additionalNotes').strip():
+        notes_c = RV('additionalNotes')
+        flow += [Spacer(1, GAP),
+                 section([Paragraph('Additional Notes', head), Spacer(1, 6)]
+                         + (notes_c if isinstance(notes_c, list) else [notes_c]))]
+
     # The header goes on page 1 only; the footer on the last page only.
     class _CamCanvas(canvas.Canvas):
         def __init__(self, *a, **k):

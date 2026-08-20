@@ -406,6 +406,46 @@ def _fill_richtext_cell(cell, html):
         _set_cell(cell, '')
 
 
+def _append_richtext_body(doc, html, heading='Additional Notes'):
+    """Append a heading + rich-text content to the end of the document body (used
+    for the CAM's additional notes, which sit below the signature)."""
+    import richtext
+    from docx.shared import Pt, RGBColor
+    plain = re.sub(r'<[^>]+>', ' ', html or '') if richtext.looks_like_html(html or '') else (html or '')
+    if not plain.strip():
+        return
+    doc.add_paragraph()  # spacing above
+    doc.add_paragraph().add_run(heading).bold = True
+    if not richtext.looks_like_html(html):
+        for line in html.split('\n'):
+            doc.add_paragraph(line)
+        return
+    for blk in richtext.parse_blocks(html):
+        p = doc.add_paragraph()
+        if blk['bullet']:
+            depth = max(1, blk['indent'])
+            p.paragraph_format.left_indent = Pt(14 * depth)
+            p.add_run(richtext.list_marker(blk['bullet'], blk['number'], depth) + ' ')
+        for li, line in enumerate(blk['lines']):
+            if li > 0:
+                (p.runs[-1] if p.runs else p.add_run()).add_break()
+            for run in line:
+                r = p.add_run(run['text'])
+                if run['b']:
+                    r.bold = True
+                if run['i']:
+                    r.italic = True
+                if run['u']:
+                    r.underline = True
+                if run.get('color'):
+                    try:
+                        r.font.color.rgb = RGBColor.from_string(run['color'].lstrip('#').upper())
+                    except (ValueError, KeyError):
+                        pass
+                if run.get('pt'):
+                    r.font.size = Pt(run['pt'])
+
+
 def _fill_liabilities(table, rows):
     """Fill the Liabilities grid below its header row: one row per liability
     (Type of Loan | Outstanding Balance/Limit | Conduct). Adds/removes rows."""
@@ -483,6 +523,9 @@ def _fill_cam(doc, values):
             tables[7].rows[6].cells[1].paragraphs[0].add_run().add_picture(io.BytesIO(raw), height=Pt(40))
         except Exception:  # noqa: BLE001
             pass
+
+    # Additional notes below the signature (rich text).
+    _append_richtext_body(doc, g('additionalNotes'))
 
 
 _FILLERS = {
