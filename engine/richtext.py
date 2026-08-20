@@ -146,7 +146,9 @@ class _Parser(HTMLParser):
         undo = {'b': 0, 'i': 0, 'u': 0, 'color': 0, 'pt': 0}
         if tag == 'br':
             self._newline()
-            self._elstack.append(undo)
+            # <br> is void — no matching end tag — so it must NOT push onto the
+            # undo stack, or a later </b>/</i> pops this instead of its own entry
+            # and the formatting leaks forward.
             return
         if tag in ('ul', 'ol'):
             self._flush()
