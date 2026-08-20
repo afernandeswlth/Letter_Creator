@@ -16,7 +16,7 @@ from html.parser import HTMLParser
 
 # HTML <font size="1..7"> is a relative scale; map it to absolute points.
 _FONT_PT = {1: 7.5, 2: 9, 3: 10.5, 4: 12, 5: 15, 6: 20, 7: 27}
-_BLOCK_TAGS = {'p', 'div', 'blockquote'}
+_BLOCK_TAGS = {'p', 'div'}
 # Some editors offer heading styles (formatBlock h2/h3/…) instead of a font-size
 # control; render those as bold, sized text.
 _HEADING_PT = {'h1': 18, 'h2': 15, 'h3': 12.5, 'h4': 11, 'h5': 10, 'h6': 10}
@@ -115,6 +115,7 @@ class _Parser(HTMLParser):
         self._pts = []
         self._lists = []       # {'ordered': bool, 'count': int}
         self._bullet = None    # (kind, number, indent) while inside an <li>
+        self._quote = 0        # <blockquote> nesting depth = Tab-indent level
         self._elstack = []
 
     def _run_fmt(self):
@@ -137,11 +138,11 @@ class _Parser(HTMLParser):
             self.blocks.append({
                 'bullet': self._bullet[0] if self._bullet else None,
                 'number': self._bullet[1] if self._bullet else 0,
-                'indent': self._bullet[2] if self._bullet else 0,
+                'indent': self._bullet[2] if self._bullet else self._quote,
                 'lines': self._lines or [[]],
             })
         elif self._lines:
-            self.blocks.append({'bullet': None, 'number': 0, 'indent': 0, 'lines': [[]]})
+            self.blocks.append({'bullet': None, 'number': 0, 'indent': self._quote, 'lines': [[]]})
         self._lines = []
         self._line = []
 
@@ -167,6 +168,11 @@ class _Parser(HTMLParser):
                 except ValueError:
                     start = 0
             self._lists.append({'ordered': tag == 'ol', 'count': start})
+            self._elstack.append(undo)
+            return
+        if tag == 'blockquote':
+            self._flush()
+            self._quote += 1
             self._elstack.append(undo)
             return
         if tag == 'li':
@@ -237,6 +243,11 @@ class _Parser(HTMLParser):
         if tag == 'li':
             self._flush()
             self._bullet = None
+            return
+        if tag == 'blockquote':
+            self._flush()
+            if self._quote > 0:
+                self._quote -= 1
             return
         if tag in _BLOCK_TAGS or tag in _HEADING_PT:
             self._flush()
@@ -331,6 +342,15 @@ def rich_flow(raw, para_style):
                                 bulletFontName=para_style.fontName)
             bt = list_marker(blk['bullet'], blk['number'], depth)
             flow.append(Paragraph(text, li_style, bulletText=bt))
+        elif blk['indent']:
+            flush_pending()
+            text = '<br/>'.join(_line_markup(ln) for ln in blk['lines']) or '&nbsp;'
+            mp = max((line_pt(ln) for ln in blk['lines']), default=base_pt)
+            # The editor's Tab indent wraps each level in a <blockquote> with
+            # margin-left:40px (~24pt); mirror that so the PDF steps in the same
+            # way, with a little breathing room above/below like the editor.
+            para = mk_style(mp, leftIndent=24 * blk['indent'], spaceBefore=2, spaceAfter=2)
+            flow.append(Paragraph(text, para))
         else:
             for ln in blk['lines']:
                 pending.append((_line_markup(ln), line_pt(ln)))
