@@ -179,6 +179,18 @@ def build_cam_pdf(brand_id, v):
         raw = g(key)
         return re.sub(r'<[^>]+>', ' ', raw) if raw and richtext.looks_like_html(raw) else raw
 
+    def _rich_h(content, width, floor, pad=6):
+        """Actual rendered height of a cell's flowable(s), floored — so rich lists
+        (taller than their plain text) don't overflow a fixed-height cell."""
+        flows = content if isinstance(content, list) else [content]
+        total = 0
+        for f in flows:
+            try:
+                total += f.wrap(width - 10, 100000)[1]
+            except Exception:  # noqa: BLE001
+                total += 12
+        return max(total + pad, floor)
+
     def B(t):
         return Paragraph(esc(t), barp)
 
@@ -255,22 +267,25 @@ def build_cam_pdf(brand_id, v):
     flow += [section([Paragraph('Liabilities', head), Spacer(1, 9), li]), Spacer(1, GAP)]
 
     # Credit History (roomy min height for notes)
-    ch = Table([[B('Credit History')], [RV('creditHistory')]],
-               colWidths=[CONTENT_W], rowHeights=[None, _min_h(mtext('creditHistory'), val, CONTENT_W, 120)])
+    ch_c = RV('creditHistory')
+    ch = Table([[B('Credit History')], [ch_c]],
+               colWidths=[CONTENT_W], rowHeights=[None, _rich_h(ch_c, CONTENT_W, 120)])
     ch.setStyle(style(bar_first=True))
     flow += [section([ch]), Spacer(1, GAP)]
 
     # Living Costs / Policy exceptions
-    lc_h = _min_h(mtext('livingCost'), val, half, 90, mtext('policyExceptions'))
+    lc_c, pe_c = RV('livingCost'), RV('policyExceptions')
+    lc_h = max(_rich_h(lc_c, half, 0), _rich_h(pe_c, half, 0), 90)
     lcp = Table([[B('Living Costs:'), B('Policy exceptions (including mitigants)')],
-                 [RV('livingCost'), RV('policyExceptions')]],
+                 [lc_c, pe_c]],
                 colWidths=[half, half], rowHeights=[None, lc_h])
     lcp.setStyle(style(bar_first=True))
     flow += [section([lcp]), Spacer(1, GAP)]
 
     # Final Assessment (auto height)
-    fa = Table([[B('Final Assesment')], [RV('finalAssessment')]],
-               colWidths=[CONTENT_W], rowHeights=[None, _min_h(mtext('finalAssessment'), val, CONTENT_W, 60)])
+    fa_c = RV('finalAssessment')
+    fa = Table([[B('Final Assesment')], [fa_c]],
+               colWidths=[CONTENT_W], rowHeights=[None, _rich_h(fa_c, CONTENT_W, 60)])
     fa.setStyle(style(bar_first=True))
     flow += [section([fa]), Spacer(1, GAP)]
 

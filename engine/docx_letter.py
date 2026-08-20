@@ -381,8 +381,9 @@ def _fill_richtext_cell(cell, html):
         p = first if not used else cell.add_paragraph(style=base_style)
         used = True
         if blk['bullet']:
-            p.paragraph_format.left_indent = Pt(12 + 12 * max(0, blk['indent'] - 1))
-            prefix = '• ' if blk['bullet'] == 'ul' else ('%d. ' % blk['number'])
+            depth = max(1, blk['indent'])
+            p.paragraph_format.left_indent = Pt(14 * depth)
+            prefix = richtext.list_marker(blk['bullet'], blk['number'], depth) + ' '
             _style_run(p.add_run(prefix))
         for li, line in enumerate(blk['lines']):
             if li > 0:

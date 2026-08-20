@@ -51,6 +51,15 @@ function cmd(command: string, value?: string) {
   sync()
 }
 
+// Tab / Shift-Tab nests and un-nests list items (and indents plain lines).
+function onKey(e: KeyboardEvent) {
+  if (e.key === 'Tab') {
+    e.preventDefault()
+    document.execCommand(e.shiftKey ? 'outdent' : 'indent')
+    sync()
+  }
+}
+
 const isEmpty = computed(() => {
   const v = (props.modelValue || '').replace(/<[^>]+>/g, '').replace(/&nbsp;|\s| /g, '')
   return v === ''
@@ -144,6 +153,7 @@ function pickColor(hex: string) {
         class="rt-body w-full overflow-y-auto px-3 py-2.5 text-sm leading-relaxed text-slate-900 outline-none"
         :style="{ minHeight: minHeight || '16rem', maxHeight: '32rem' }"
         @input="sync"
+        @keydown="onKey"
         @focus="focused = true"
         @blur="focused = false; sync()"
       />
@@ -171,4 +181,19 @@ function pickColor(hex: string) {
 .rt-body :deep(div) {
   min-height: 1.2em;
 }
+/* Tailwind's preflight strips list markers/indent; restore them here so the
+   bullet + numbered-list buttons show, and nest 1. → a. → i. as in the doc. */
+.rt-body :deep(ul),
+.rt-body :deep(ol) {
+  padding-left: 1.6rem;
+  margin: 0.3rem 0;
+}
+.rt-body :deep(ul) { list-style: disc; }
+.rt-body :deep(ol) { list-style: decimal; }
+.rt-body :deep(ol ol) { list-style: lower-alpha; }
+.rt-body :deep(ol ol ol) { list-style: lower-roman; }
+.rt-body :deep(ul ul) { list-style: circle; }
+.rt-body :deep(ul ul ul) { list-style: square; }
+.rt-body :deep(li) { margin: 0.14rem 0; }
+
 </style>

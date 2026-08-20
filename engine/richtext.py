@@ -50,6 +50,37 @@ def _clean_color(c):
     return _NAMES.get(c.lower(), '#111827')
 
 
+def _roman(n):
+    out, vals = '', [(1000, 'm'), (900, 'cm'), (500, 'd'), (400, 'cd'), (100, 'c'),
+                     (90, 'xc'), (50, 'l'), (40, 'xl'), (10, 'x'), (9, 'ix'),
+                     (5, 'v'), (4, 'iv'), (1, 'i')]
+    for v, s in vals:
+        while n >= v:
+            out += s
+            n -= v
+    return out or 'i'
+
+
+def _alpha(n):
+    s = ''
+    while n > 0:
+        n, r = divmod(n - 1, 26)
+        s = chr(97 + r) + s
+    return s or 'a'
+
+
+def list_marker(kind, number, depth):
+    """The marker for a list item: bullets for 'ul'; decimal → lower-alpha →
+    lower-roman as ordered lists nest deeper (1. / a. / i.)."""
+    if kind == 'ul':
+        return '•'
+    if depth <= 1:
+        return '%d.' % number
+    if depth == 2:
+        return '%s.' % _alpha(number)
+    return '%s.' % _roman(number)
+
+
 def _pt_from_style(style):
     sz = style.get('font-size', '')
     try:
@@ -94,14 +125,16 @@ class _Parser(HTMLParser):
         if self._line:
             self._newline()
         has_text = any(any(r['text'].strip() for r in ln) for ln in self._lines)
-        if has_text or self._bullet is not None:
+        if has_text:
             self.blocks.append({
                 'bullet': self._bullet[0] if self._bullet else None,
                 'number': self._bullet[1] if self._bullet else 0,
                 'indent': self._bullet[2] if self._bullet else 0,
-                'lines': self._lines or [[]],
+                'lines': self._lines,
             })
-        elif self._lines:
+        elif self._lines and self._bullet is None:
+            # A blank line outside a list is a paragraph gap; an empty list item
+            # (e.g. a parent that only holds a nested list) is dropped.
             self.blocks.append({'bullet': None, 'number': 0, 'indent': 0, 'lines': [[]]})
         self._lines = []
         self._line = []
@@ -271,10 +304,11 @@ def rich_flow(raw, para_style):
             flush_pending()
             text = '<br/>'.join(_line_markup(ln) for ln in blk['lines']) or '&nbsp;'
             mp = max((line_pt(ln) for ln in blk['lines']), default=base_pt)
-            indent = 12 * max(0, blk['indent'] - 1)
-            li_style = mk_style(mp, leftIndent=indent + 13, bulletIndent=indent,
+            depth = max(1, blk['indent'])
+            indent = 14 * (depth - 1)
+            li_style = mk_style(mp, leftIndent=indent + 14, bulletIndent=indent,
                                 spaceBefore=1, spaceAfter=1)
-            bt = '•' if blk['bullet'] == 'ul' else ('%d.' % blk['number'])
+            bt = list_marker(blk['bullet'], blk['number'], depth)
             flow.append(Paragraph(text, li_style, bulletText=bt))
         else:
             for ln in blk['lines']:
