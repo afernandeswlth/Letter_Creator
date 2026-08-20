@@ -168,7 +168,7 @@ export const LETTER_TYPES: Record<LetterTypeId, LetterType> = {
       { id: 'borrowers', label: 'Borrower(s)', type: 'text', required: true, placeholder: 'Mr John Smith & Mrs Jane Smith', section: 'Overview' },
       { id: 'mortgageManager', label: 'Mortgage Manager', type: 'text', required: false, default: 'WLTH', section: 'Overview' },
       // Proposed Exposure
-      { id: 'exposureAccount', label: 'Account Number', type: 'text', required: false, placeholder: '400192207', section: 'Proposed Exposure' },
+      { id: 'exposureAccount', label: 'Account Number', type: 'text', required: false, placeholder: '400001234 or APP-123456', section: 'Proposed Exposure' },
       { id: 'exposureBalance', label: 'Proposed Balance', type: 'currency', required: false, placeholder: '$750,000.00', section: 'Proposed Exposure' },
       { id: 'exposureInterestType', label: 'Interest Type', type: 'text', required: false, default: 'Variable', section: 'Proposed Exposure' },
       { id: 'exposureLoanPurpose', label: 'Loan Purpose', type: 'text', required: false, placeholder: 'Purchase - Owner Occupied', section: 'Proposed Exposure' },

@@ -23,7 +23,8 @@ _PROPS = [
     'amount',                       # Proposed Balance
     'primary_deal_purpose',         # Loan Purpose (combined with the loan type)
     'primary_loan_type',
-    'split_account_number__loan_facility_number_',
+    'loan_facility_number',          # Account Number (primary)
+    'application_reference__',       # App Ref # (fallback, e.g. APP-955081)
     'lead___current_lender_name',
     'lead___current_loan_balance_for_refinance',
 ]
@@ -118,7 +119,7 @@ def fetch_deal_values(deal_id):
 
     values = {
         'borrowers': g('borrower__last_name_s__company_name__trust_name__or_smsf_name__temp_'),
-        'exposureAccount': g('split_account_number__loan_facility_number_'),
+        'exposureAccount': g('loan_facility_number') or g('application_reference__'),
         'exposureBalance': _money(g('amount')),
         'exposureLoanPurpose': loan_purpose,
         'proposedSecurity': security,
