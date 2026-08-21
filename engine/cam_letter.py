@@ -273,6 +273,7 @@ def build_cam_pdf(brand_id, v, anchors=None):
                 [L('Account number:'), V(g('exposureAccount'))],
                 [L('Mortgage Manager:'), V(g('mortgageManager'))]], colWidths=ov_cols)
     ov.setStyle(style())
+    ov._cam_rows = {'borrowers': 0, 'exposureAccount': 1, 'mortgageManager': 2}
     flow += [section([Paragraph('Applicant Overview', head), Spacer(1, 9), ov], 'overview'), Spacer(1, GAP)]
 
     # Product Details
@@ -282,17 +283,23 @@ def build_cam_pdf(brand_id, v, anchors=None):
                 [L('Proposed Security'), V(g('proposedSecurity')), L('Proposed LVR'), V(g('proposedLvr'))]],
                colWidths=pd_cols)
     pd.setStyle(style(bar_first=True, label_cols=(0, 2)))
+    pd._cam_rows = {'exposureBalance': 1, 'exposureInterestType': 2,
+                    'exposureLoanPurpose': 2, 'proposedSecurity': 3, 'proposedLvr': 3}
     flow += [section([pd], 'product'), Spacer(1, GAP)]
 
-    # Background information
+    # Background information — one row per sub-field; `_cam_rows` maps each field
+    # to its row so the preview can outline just that row, not the whole table.
     bg_rows = [[B('Background information'), '']]
+    bg_rowmap = {}
     _RICH_BG = {'personalInfo', 'employment', 'rentalIncome', 'security'}
     for name, fld in [('Personal Info', 'personalInfo'), ('Employment', 'employment'),
                       ('Rental Income', 'rentalIncome'), ('Security', 'security'),
                       ('LMI', 'lmi'), ('NDI', 'ndi')]:
+        bg_rowmap[fld] = len(bg_rows)
         bg_rows.append([L(name), RV(fld) if fld in _RICH_BG else V(g(fld))])
     bg = Table(bg_rows, colWidths=bg_cols)
     bg.setStyle(style(bar_first=True, label_cols=(0,)))
+    bg._cam_rows = bg_rowmap
     flow += [section([bg], 'background'), Spacer(1, GAP)]
 
     # Refinance History — a row per (non-empty) refinance: "Refinance N" | notes.
@@ -365,6 +372,8 @@ def build_cam_pdf(brand_id, v, anchors=None):
         ('TOPPADDING', (0, 0), (-1, 0), 1.4), ('BOTTOMPADDING', (0, 0), (-1, 0), 1.4),
         ('BACKGROUND', (0, 2), (0, 4), GREY_LABEL),
     ]))
+    rec._cam_rows = {'recommendation': 1, 'recommendedName': 2,
+                     'recommendedDate': 3, 'recommendedSignature': 4}
     flow += [section([rec], 'recommendation')]
 
     # Additional notes below the signature (rich text), only when provided.
@@ -405,6 +414,7 @@ def build_cam_pdf(brand_id, v, anchors=None):
         def __init__(self, *a, **k):
             self._sec_pos = {}
             self._sec_end = {}
+            self._field_rect = {}
             BaseDocTemplate.__init__(self, *a, **k)
 
         def afterFlowable(self, flowable):
@@ -416,6 +426,16 @@ def build_cam_pdf(brand_id, v, anchors=None):
             endkey = getattr(flowable, '_cam_anchor_end', None)
             if endkey:
                 self._sec_end[endkey] = (self.page, self.frame._y)   # bottom edge
+            # Per-row rectangles for tables that map fields to rows, so a field's
+            # own row is outlined rather than the whole table.
+            rowmap = getattr(flowable, '_cam_rows', None)
+            rh = getattr(flowable, '_rowHeights', None)
+            if rowmap and rh:
+                tab_top = self.frame._y + sum(rh)  # absolute y of the table's top
+                for fid, ridx in rowmap.items():
+                    if 0 <= ridx < len(rh):
+                        row_top = tab_top - sum(rh[:ridx])
+                        self._field_rect[fid] = (self.page, row_top, row_top - rh[ridx])
 
     doc = _CamDoc(buf, pagesize=(PAGE_W, PAGE_H))
     from reportlab.platypus import NextPageTemplate
@@ -441,8 +461,18 @@ def build_cam_pdf(brand_id, v, anchors=None):
                 'top': round(min(1.0, max(0.0, top_f)), 4),
                 'bottom': round(min(1.0, max(0.0, bottom_f)), 4),
             }
+        # Per-field row rectangles (override the coarser section rect).
+        field_rect = {}
+        for fid, (page, rtop, rbot) in doc._field_rect.items():
+            field_rect[fid] = {
+                'page': page - 1,
+                'top': round(min(1.0, max(0.0, (PAGE_H - rtop) / PAGE_H)), 4),
+                'bottom': round(min(1.0, max(0.0, (PAGE_H - rbot) / PAGE_H)), 4),
+            }
         for fid, skey in _FIELD_SECTION.items():
-            if skey in sec_rect:
+            if fid in field_rect:
+                anchors[fid] = field_rect[fid]
+            elif skey in sec_rect:
                 anchors[fid] = sec_rect[skey]
     return buf.getvalue()
 
