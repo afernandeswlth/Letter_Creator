@@ -252,7 +252,8 @@ def build_cam_pdf(brand_id, v, anchors=None):
         # build to give the preview a scroll position.
         if key and flowables:
             try:
-                flowables[0]._cam_anchor = key
+                flowables[0]._cam_anchor = key       # top of the section
+                flowables[-1]._cam_anchor_end = key  # bottom of the section
             except AttributeError:
                 pass
         return KeepTogether(flowables)
@@ -403,13 +404,18 @@ def build_cam_pdf(brand_id, v, anchors=None):
         """Records the page + top-y of each anchored section as it's laid out."""
         def __init__(self, *a, **k):
             self._sec_pos = {}
+            self._sec_end = {}
             BaseDocTemplate.__init__(self, *a, **k)
 
         def afterFlowable(self, flowable):
+            # Tables expose their drawn height as `_height`, not `height`.
+            h = getattr(flowable, 'height', 0) or getattr(flowable, '_height', 0) or 0
             key = getattr(flowable, '_cam_anchor', None)
             if key and key not in self._sec_pos:
-                top = self.frame._y + getattr(flowable, 'height', 0)
-                self._sec_pos[key] = (self.page, top)
+                self._sec_pos[key] = (self.page, self.frame._y + h)  # top edge
+            endkey = getattr(flowable, '_cam_anchor_end', None)
+            if endkey:
+                self._sec_end[endkey] = (self.page, self.frame._y)   # bottom edge
 
     doc = _CamDoc(buf, pagesize=(PAGE_W, PAGE_H))
     from reportlab.platypus import NextPageTemplate
@@ -421,14 +427,23 @@ def build_cam_pdf(brand_id, v, anchors=None):
     doc.build(flow, canvasmaker=_CamCanvas)
 
     if anchors is not None:
-        npages = max(1, doc.page)
-        sec_frac = {}
+        # Per-section rectangle as {page (0-based), top, bottom} where top/bottom
+        # are fractions of that page's height (0 = page top). The client maps
+        # these onto the actual page images, so a section near a page break is
+        # outlined tightly instead of spanning the gap to the next page.
+        sec_rect = {}
         for key, (page, top) in doc._sec_pos.items():
-            y_from_top = PAGE_H - top  # top-of-page = PAGE_H in page coords
-            sec_frac[key] = ((page - 1) * PAGE_H + y_from_top) / (npages * PAGE_H)
+            endpage, bottom = doc._sec_end.get(key, (page, top))
+            top_f = (PAGE_H - top) / PAGE_H
+            bottom_f = 1.0 if endpage != page else (PAGE_H - bottom) / PAGE_H
+            sec_rect[key] = {
+                'page': page - 1,
+                'top': round(min(1.0, max(0.0, top_f)), 4),
+                'bottom': round(min(1.0, max(0.0, bottom_f)), 4),
+            }
         for fid, skey in _FIELD_SECTION.items():
-            if skey in sec_frac:
-                anchors[fid] = round(min(1.0, max(0.0, sec_frac[skey])), 4)
+            if skey in sec_rect:
+                anchors[fid] = sec_rect[skey]
     return buf.getvalue()
 
 

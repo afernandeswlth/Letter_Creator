@@ -22,9 +22,11 @@ function zoomOut() {
 
 const previewScroll = ref<HTMLElement | null>(null)
 const pagesEl = ref<HTMLElement | null>(null)
-// Vertical position (0-1 of the document) of each field's section, from the
-// engine — so an edit scrolls the preview to the right place.
-const fieldPositions = ref<Record<string, number>>({})
+// Each field's section rectangle from the engine: {page (0-based), top, bottom}
+// as fractions of that page's height. Lets the preview scroll to — and outline
+// — the exact section, even across a page break.
+type SectionRect = { page: number, top: number, bottom: number }
+const fieldPositions = ref<Record<string, SectionRect>>({})
 let pendingScrollField: string | null = null
 
 // A transient border drawn OVER the preview around the section an edit changed
@@ -33,31 +35,32 @@ let pendingScrollField: string | null = null
 const marker = ref<{ top: number, height: number } | null>(null)
 let markerT: ReturnType<typeof setTimeout> | undefined
 
-// Centre the edited field's section in the preview and outline it. Uses the
-// engine-reported position; falls back to the field's order when none.
+// Centre the edited field's section in the preview and outline it tightly.
+// Maps the engine's per-page rectangle onto the actual page image so it lands
+// on the right page and hugs the section; falls back to field order if unknown.
 function scrollPreviewToField(fieldId: string) {
   const el = previewScroll.value
+  const pages = pagesEl.value
   if (!el) return
-  let frac = fieldPositions.value[fieldId]
-  const known = frac != null
-  if (frac == null) {
+  const rect = fieldPositions.value[fieldId]
+  if (!rect || !pages) {
     const idx = fields.value.findIndex(f => f.id === fieldId)
     if (idx < 0) return
-    frac = idx / Math.max(1, fields.value.length - 1)
+    const frac = idx / Math.max(1, fields.value.length - 1)
+    nextTick(() => el.scrollTo({ top: Math.max(0, frac * el.scrollHeight - el.clientHeight / 2), behavior: 'smooth' }))
+    return
   }
   nextTick(() => {
-    el.scrollTo({ top: Math.max(0, frac * el.scrollHeight - el.clientHeight / 2), behavior: 'smooth' })
-    const pages = pagesEl.value
-    if (known && pages) {
-      // Outline from this section's top to the next section's top (the engine
-      // reports one fraction per section, so the box spans the whole section).
-      const fracs = [...new Set(Object.values(fieldPositions.value))].sort((a, b) => a - b)
-      const nextFrac = fracs.find(f => f > frac + 1e-6) ?? 1
-      const h = pages.offsetHeight
-      marker.value = { top: frac * h, height: Math.max(28, (nextFrac - frac) * h) }
-      clearTimeout(markerT)
-      markerT = setTimeout(() => { marker.value = null }, 4000) // fades on its own
-    }
+    const imgs = [...pages.querySelectorAll('img')] as HTMLElement[]
+    const img = imgs[Math.min(rect.page, imgs.length - 1)]
+    if (!img) return
+    const top = img.offsetTop + rect.top * img.offsetHeight
+    const height = Math.max(18, (rect.bottom - rect.top) * img.offsetHeight)
+    marker.value = { top, height }
+    clearTimeout(markerT)
+    markerT = setTimeout(() => { marker.value = null }, 4000) // fades on its own
+    const target = pages.offsetTop + top + height / 2 - el.clientHeight / 2
+    el.scrollTo({ top: Math.max(0, target), behavior: 'smooth' })
   })
 }
 
@@ -71,7 +74,7 @@ async function renderPreview(initial = false) {
     const r = await formPreview(currentType.value.engine, state.value.brand, state.value.fieldValues)
     if (seq === renderSeq) {
       pages.value = r.pages // latest request wins
-      fieldPositions.value = r.positions
+      fieldPositions.value = (r.positions ?? {}) as Record<string, SectionRect>
     }
   } catch (e) {
     if (seq === renderSeq) error.value = `Could not render the letter. ${(e as Error).message}`
