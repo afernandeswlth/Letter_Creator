@@ -15,7 +15,7 @@ from html import escape as _hesc
 from html.parser import HTMLParser
 
 # HTML <font size="1..7"> is a relative scale; map it to absolute points.
-_FONT_PT = {1: 7.5, 2: 9, 3: 10.5, 4: 12, 5: 15, 6: 20, 7: 27}
+_FONT_PT = {1: 8, 2: 9, 3: 10, 4: 11, 5: 12, 6: 14, 7: 18}
 _BLOCK_TAGS = {'p', 'div'}
 # Some editors offer heading styles (formatBlock h2/h3/…) instead of a font-size
 # control; render those as bold, sized text.
