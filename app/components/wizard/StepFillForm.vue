@@ -174,7 +174,12 @@ function onNext() {
   // Schedule 4 flow: once an S4 is read, proceed to Preview (review there).
   // Manual flow: require all fields.
   if (supportsSchedule4.value && state.value.formMode === 'schedule4') {
-    if (state.value.formParsed) next()
+    // Open the editor on the preview so the assessor lands on the fields the
+    // Schedule 4 didn't fill (flagged red — "required manual input").
+    if (state.value.formParsed) {
+      startEditing.value = true
+      next()
+    }
   } else if (isValid.value) {
     next()
   }

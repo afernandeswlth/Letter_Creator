@@ -112,9 +112,21 @@ function fieldEmpty(f: LetterTypeField) {
   if (f.type === 'richtext') return v.replace(/<[^>]+>/g, '').replace(/&nbsp;|\s/g, '') === ''
   return v.trim() === ''
 }
+// Review borders fire whenever the form was auto-prefilled from a source —
+// a HubSpot deal (CAM) or a Schedule 4 upload (Formal Approval).
+const scheduleImported = computed(
+  () => !!state.value.formParsed && currentType.value?.source === 'schedule4',
+)
+const sourcePrefilled = computed(() => state.value.hubspotImported || scheduleImported.value)
 function reviewMark(f: LetterTypeField): 'red' | 'amber' | null {
-  if (!state.value.hubspotImported || NO_REVIEW.has(f.id)) return null
-  if (fieldEmpty(f)) return 'red'
+  if (!sourcePrefilled.value || NO_REVIEW.has(f.id)) return null
+  if (fieldEmpty(f)) {
+    // A Schedule 4 import flags only the mandatory fields the assessor still
+    // has to enter by hand (the letter can go out without the optional ones);
+    // a HubSpot import flags every empty field, as before.
+    if (scheduleImported.value && !state.value.hubspotImported) return f.required ? 'red' : null
+    return 'red'
+  }
   if (f.default && (draft[f.id] ?? '') === f.default) return 'amber'
   return null
 }
@@ -255,7 +267,7 @@ onMounted(async () => {
 
         <div class="flex-1 overflow-y-auto px-5 py-4">
           <!-- Colour legend for the review borders (HubSpot import only) -->
-          <div v-if="state.hubspotImported" class="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-500">
+          <div v-if="sourcePrefilled" class="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-500">
             <span class="inline-flex items-center gap-1.5"><span class="inline-block h-3 w-3 rounded border-2 border-red-400" />Needs a value</span>
             <span class="inline-flex items-center gap-1.5"><span class="inline-block h-3 w-3 rounded border-2 border-amber-400" />Template default — review</span>
           </div>
@@ -319,6 +331,7 @@ onMounted(async () => {
                 />
 
                 <p v-if="f.help" class="mt-1 text-xs text-slate-400">{{ f.help }}</p>
+                <p v-if="f.required && reviewMark(f) === 'red'" class="mt-1 text-xs font-medium text-red-600">Required — manual input.</p>
               </div>
             </div>
           </div>
