@@ -168,15 +168,15 @@ def _special_conditions(lines, brand):
         if cur:
             conds.append(' '.join(cur))
 
-    # Internal document-collection notes (bank statements / payslips) are not
-    # customer-facing special conditions — the letters omit them.
-    INTERNAL = ('bank statement', 'payslip', 'pay slip')
+    # Reproduce every condition one-for-one, word for word — nothing is dropped
+    # or reworded. (Only the Origin program-manager name is rebranded to the
+    # issuing brand; the substance is left exactly as written.)
     label = BRAND_LABEL.get(brand, 'WLTH')
     cleaned = []
     for c in conds:
         c = re.sub(r'\s{2,}', ' ', c).strip()
         c = re.sub(r'\bOrigin\b', label, c)
-        if c and not any(k in c.lower() for k in INTERNAL):
+        if c:
             cleaned.append(c)
     return '\n'.join(f'{i + 1}. {c}' for i, c in enumerate(cleaned))
 
@@ -234,14 +234,25 @@ def parse_schedule4(path, brand='wlth'):
     put('securityProperty', re.sub(r',\s*Australia\s*$', '', sec))
 
     # Borrower(s): Format B has the full "Company ATF Trust" in one field;
-    # Format A builds it from the company applicant + its trust name.
+    # Format A builds it from the company applicant + its trust name; the Origin
+    # "Application for Approval" layout (Format C) repeats a "Borrower:" label,
+    # one per person, with the name on the next line. Multiple borrowers are
+    # joined with commas.
     borrower = _after(lines, 'Primary Borrower Name')
     if not borrower:
         bs = []
         for e in _applicant_entries(lines):
             if e['role'] == 'Borrower' and e['name']:
                 bs.append(f"{e['name']} ATF {e['trust']}" if e['trust'] else e['name'])
-        borrower = ' & '.join(bs)
+        if not bs:
+            # Dedupe while preserving order (a name can also recur under
+            # "Security Ownership", but we only read the "Borrower:" labels).
+            seen = set()
+            for name in _all_after_re(lines, r'borrower$'):
+                if name and name not in seen:
+                    seen.add(name)
+                    bs.append(name)
+        borrower = ', '.join(bs)
     put('borrowers', borrower)
 
     # Guarantor(s): Format B "Member N Guarantor Name", else Format A person applicants.
