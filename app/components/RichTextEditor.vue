@@ -71,12 +71,12 @@ const isEmpty = computed(() => {
 // Font size in points; the value is the HTML <font size="1-7"> scale the engine
 // maps back to points (engine/richtext.py `_FONT_PT`).
 const SIZES = [
-  { label: '9', v: '2' },
-  { label: '10', v: '3' },
-  { label: '11', v: '4' },
-  { label: '12', v: '5' },
-  { label: '14', v: '6' },
-  { label: '18', v: '7' },
+  { label: '9 pt (default)', v: '2' },
+  { label: '10 pt', v: '3' },
+  { label: '11 pt', v: '4' },
+  { label: '12 pt', v: '5' },
+  { label: '14 pt', v: '6' },
+  { label: '18 pt', v: '7' },
 ]
 const COLORS = [
   { name: 'Black', hex: '#111827' },
@@ -119,7 +119,7 @@ function pickColor(hex: string) {
           <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6" /></svg>
         </button>
         <div v-if="sizeOpen" class="absolute left-0 top-full z-20 mt-1 w-36 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
-          <button v-for="s in SIZES" :key="s.v" type="button" class="block w-full px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50" @mousedown.prevent @click="pickSize(s.v)">{{ s.label }} pt</button>
+          <button v-for="s in SIZES" :key="s.v" type="button" class="block w-full px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50" @mousedown.prevent @click="pickSize(s.v)">{{ s.label }}</button>
         </div>
       </div>
 
