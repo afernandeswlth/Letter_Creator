@@ -26,8 +26,13 @@ const previewScroll = ref<HTMLElement | null>(null)
 const fieldPositions = ref<Record<string, number>>({})
 let pendingScrollField: string | null = null
 
-// Centre the edited field's section in the preview. Uses the engine-reported
-// position; falls back to the field's order when none is available.
+// A transient "you edited here" marker drawn OVER the preview (never part of the
+// PDF) so it's obvious which part of the letter an edit changed.
+const marker = ref<{ top: number, label: string } | null>(null)
+let markerT: ReturnType<typeof setTimeout> | undefined
+
+// Centre the edited field's section in the preview and flag it with the marker.
+// Uses the engine-reported position; falls back to the field's order when none.
 function scrollPreviewToField(fieldId: string) {
   const el = previewScroll.value
   if (!el) return
@@ -37,9 +42,13 @@ function scrollPreviewToField(fieldId: string) {
     if (idx < 0) return
     frac = idx / Math.max(1, fields.value.length - 1)
   }
+  const label = fields.value.find(f => f.id === fieldId)?.label ?? 'this field'
   nextTick(() => {
-    const y = frac * el.scrollHeight - el.clientHeight / 2 // centre the section
-    el.scrollTo({ top: Math.max(0, y), behavior: 'smooth' })
+    const top = frac * el.scrollHeight
+    el.scrollTo({ top: Math.max(0, top - el.clientHeight / 2), behavior: 'smooth' }) // centre it
+    marker.value = { top, label }
+    clearTimeout(markerT)
+    markerT = setTimeout(() => { marker.value = null }, 3000) // fades on its own
   })
 }
 
@@ -242,6 +251,24 @@ onMounted(async () => {
               class="w-full rounded-md bg-white shadow ring-1 ring-slate-300"
             />
           </div>
+
+          <!-- "Edited here" marker — an on-screen guide only, never part of the
+               letter. Points to the section the last edited field maps to. -->
+          <div
+            v-if="marker && !loading"
+            class="cam-edit-marker pointer-events-none absolute inset-x-0 z-20 flex items-center gap-2 px-4 sm:px-6"
+            :style="{ top: `${marker.top}px` }"
+          >
+            <span class="h-px flex-1 bg-indigo-500/60" />
+            <span class="flex flex-col items-center rounded-lg bg-indigo-600 px-3 py-1 text-center text-white shadow-lg ring-2 ring-white">
+              <span class="flex items-center gap-1 text-xs font-semibold">
+                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z" /></svg>
+                Editing: {{ marker.label }}
+              </span>
+              <span class="text-[10px] font-normal leading-tight opacity-80">Guide only — not on the letter</span>
+            </span>
+            <span class="h-px flex-1 bg-indigo-500/60" />
+          </div>
           <!-- Live-update badge: the previous preview stays visible while it re-renders -->
           <div v-if="refreshing && !loading" class="pointer-events-none sticky bottom-2 mx-auto flex w-max items-center gap-1.5 rounded-full bg-white/95 px-3 py-1 text-xs font-medium text-slate-600 shadow ring-1 ring-slate-200">
             <svg class="h-3.5 w-3.5 animate-spin text-blue-600" viewBox="0 0 24 24" fill="none">
@@ -354,3 +381,16 @@ onMounted(async () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* The "Editing here" marker is centred on the section it points to and fades in
+   so it reads as a transient guide, not part of the document. */
+.cam-edit-marker {
+  transform: translateY(-50%);
+  animation: cam-marker-in 260ms ease-out;
+}
+@keyframes cam-marker-in {
+  from { opacity: 0; transform: translateY(-50%) scale(0.96); }
+  to   { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+</style>
