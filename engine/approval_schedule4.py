@@ -235,9 +235,9 @@ def parse_schedule4(path, brand='wlth'):
 
     # Borrower(s): Format B has the full "Company ATF Trust" in one field;
     # Format A builds it from the company applicant + its trust name; the Origin
-    # "Application for Approval" layout (Format C) repeats a "Borrower:" label,
-    # one per person, with the name on the next line. Multiple borrowers are
-    # joined with commas.
+    # "Application for Approval" layout repeats a "Borrower:" label, and the
+    # Mortgage Mart / Loan Submission layout uses "Borrower Name:" (one per
+    # person, name on the next line). Multiple borrowers are joined with commas.
     borrower = _after(lines, 'Primary Borrower Name')
     if not borrower:
         bs = []
@@ -245,10 +245,11 @@ def parse_schedule4(path, brand='wlth'):
             if e['role'] == 'Borrower' and e['name']:
                 bs.append(f"{e['name']} ATF {e['trust']}" if e['trust'] else e['name'])
         if not bs:
-            # Dedupe while preserving order (a name can also recur under
-            # "Security Ownership", but we only read the "Borrower:" labels).
+            # Read every "Borrower:" / "Borrower Name:" label (but not
+            # "Borrower Classification" etc.), deduping while preserving order
+            # (a name can also recur under "Security Ownership").
             seen = set()
-            for name in _all_after_re(lines, r'borrower$'):
+            for name in _all_after_re(lines, r'borrower(?:\s+name)?$'):
                 if name and name not in seen:
                     seen.add(name)
                     bs.append(name)
