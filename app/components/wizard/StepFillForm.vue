@@ -200,20 +200,9 @@ function onNext() {
       <BrandSelector />
     </div>
 
-    <!-- Loan-app-entry chooser (CAM): loan app (soon) / HubSpot deal / manual -->
+    <!-- Loan-app-entry chooser (CAM): HubSpot deal / manual -->
     <div v-if="usesLoanAppEntry" class="mt-6">
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <!-- Import from loan app — disabled (coming soon) -->
-        <div class="flex cursor-not-allowed items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 opacity-70">
-          <WIcon name="download" class="mt-0.5 h-5 w-5 flex-none text-slate-300" />
-          <span>
-            <span class="flex flex-wrap items-center gap-1.5">
-              <span class="text-sm font-semibold text-slate-400">Import from loan app</span>
-              <span class="rounded-full bg-slate-200 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-500">Coming soon</span>
-            </span>
-            <span class="mt-0.5 block text-xs text-slate-400">Pull the application details in automatically.</span>
-          </span>
-        </div>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <!-- Import from HubSpot Deal -->
         <button
           type="button"
