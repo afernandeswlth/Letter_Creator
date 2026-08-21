@@ -68,7 +68,8 @@ _FIELD_SECTION = {
     'exposureLoanPurpose': 'product', 'proposedSecurity': 'product', 'proposedLvr': 'product',
     'personalInfo': 'background', 'employment': 'background', 'rentalIncome': 'background',
     'security': 'background', 'lmi': 'background', 'ndi': 'background',
-    'refinanceNotes': 'refinance', 'liabilities': 'liabilities', 'creditHistory': 'credit',
+    'refinanceNotes': 'refinance', 'refinanceHistoryNotes': 'refinance',
+    'liabilities': 'liabilities', 'liabilitiesNotes': 'liabilities', 'creditHistory': 'credit',
     'livingCost': 'living', 'policyExceptions': 'living', 'finalAssessment': 'assessment',
     'recommendation': 'recommendation', 'recommendedName': 'recommendation',
     'recommendedDate': 'recommendation', 'recommendedSignature': 'recommendation',
@@ -183,6 +184,7 @@ def build_cam_pdf(brand_id, v, anchors=None):
     lbl = ParagraphStyle('l', parent=body, fontSize=9, leading=11)
     val = ParagraphStyle('v', parent=body, fontSize=9, leading=11)
     barp = ParagraphStyle('bar', parent=body, fontSize=9, leading=11, textColor=colors.white)
+    note_s = ParagraphStyle('note', parent=body, fontSize=9, leading=11.5, textColor=INK)
 
     def L(t):
         return Paragraph(esc(t) or '&nbsp;', lbl)
@@ -234,6 +236,15 @@ def build_cam_pdf(brand_id, v, anchors=None):
         for c in label_cols:
             s.append(('BACKGROUND', (c, r0), (c, -1), GREY_LABEL))
         return TableStyle(s + (extra or []))
+
+    def _notes_flow(key):
+        """A small 'Notes:' paragraph under a table, or nothing when the
+        optional field is empty."""
+        note = g(key)
+        if not note:
+            return []
+        html = '<b>Notes:</b> ' + esc(note).replace('\n', '<br/>')
+        return [Spacer(1, 5), Paragraph(html, note_s)]
 
     def section(flowables, key=None):
         # Tag the first inner flowable (KeepTogether dissolves into its content at
@@ -293,7 +304,9 @@ def build_cam_pdf(brand_id, v, anchors=None):
     else:
         rf = Table([[V(''), V('')]], colWidths=rf_cols)
         rf.setStyle(style())
-    flow += [section([Paragraph('Refinance History', head), Spacer(1, 9), rf], 'refinance'), Spacer(1, GAP)]
+    rf_flow = [Paragraph('Refinance History', head), Spacer(1, 9), rf]
+    rf_flow += _notes_flow('refinanceHistoryNotes')
+    flow += [section(rf_flow, 'refinance'), Spacer(1, GAP)]
 
     # Liabilities — header row + one row per liability (Type / Balance / Conduct).
     li_rows = [[L('Type of Loan'), L('Outstanding Balance / Limit'), L('Conduct')]]
@@ -301,7 +314,9 @@ def build_cam_pdf(brand_id, v, anchors=None):
         li_rows.append([V(r[0]), V(r[1]), V(r[2])])
     li = Table(li_rows, colWidths=li_cols)
     li.setStyle(style(extra=[('BACKGROUND', (0, 0), (-1, 0), GREY_LABEL)]))
-    flow += [section([Paragraph('Liabilities', head), Spacer(1, 9), li], 'liabilities'), Spacer(1, GAP)]
+    li_flow = [Paragraph('Liabilities', head), Spacer(1, 9), li]
+    li_flow += _notes_flow('liabilitiesNotes')
+    flow += [section(li_flow, 'liabilities'), Spacer(1, GAP)]
 
     # Credit History — sizes to its content (small floor so empty stays tidy).
     ch_c = RV('creditHistory')

@@ -466,6 +466,28 @@ def _fill_liabilities(table, rows):
             _set_cell(cells[c], r[c] if c < len(r) else '')
 
 
+def _insert_note_after_table(table, text):
+    """Insert an optional small 'Notes:' paragraph immediately after `table`
+    (the CAM Refinance/Liabilities notes). No-op when the text is empty."""
+    if not text or not text.strip():
+        return
+    from docx.oxml import OxmlElement
+    from docx.shared import Pt
+    from docx.text.paragraph import Paragraph
+    new_p = OxmlElement('w:p')
+    table._tbl.addnext(new_p)
+    para = Paragraph(new_p, table._parent)
+    lead = para.add_run('Notes: ')
+    lead.bold = True
+    lead.font.size = Pt(9)
+    lines = text.split('\n')
+    for i, line in enumerate(lines):
+        run = para.add_run(line)
+        run.font.size = Pt(9)
+        if i < len(lines) - 1:
+            run.add_break()
+
+
 def _fill_cam(doc, values):
     """Fill the Credit Approval Memorandum template (8 tables + #### placeholders)."""
     g = lambda k, d='': (values.get(k) or d)  # noqa: E731
@@ -495,6 +517,13 @@ def _fill_cam(doc, values):
     # Liabilities (table 4) — dynamic rows below the header.
     try:
         _fill_liabilities(tables[4], _table_rows(g('liabilities'), 3, min_rows=1))
+    except IndexError:
+        pass
+
+    # Optional free-text Notes under each of those grids.
+    try:
+        _insert_note_after_table(tables[3], g('refinanceHistoryNotes'))
+        _insert_note_after_table(tables[4], g('liabilitiesNotes'))
     except IndexError:
         pass
 

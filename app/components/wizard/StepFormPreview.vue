@@ -93,7 +93,7 @@ const fieldsIn = (section: string) =>
 // empty fields, amber on fields still holding their template default.
 // A few fields opt out: Mortgage Manager (always WLTH) and Additional Notes
 // (optional) never get a review border.
-const NO_REVIEW = new Set(['mortgageManager', 'additionalNotes'])
+const NO_REVIEW = new Set(['mortgageManager', 'additionalNotes', 'refinanceHistoryNotes', 'liabilitiesNotes'])
 function tableEmpty(v: string) {
   if (!v) return true
   try {
